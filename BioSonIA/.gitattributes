@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# Normalize for common files
+*.ts text
+*.tsx text
+*.js text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.sh text
+*.py text

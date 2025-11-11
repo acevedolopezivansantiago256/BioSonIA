@@ -1,0 +1,1 @@
+Recursos estáticos (imágenes, íconos, etc.).

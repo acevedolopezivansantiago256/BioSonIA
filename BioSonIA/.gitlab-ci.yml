@@ -1,0 +1,35 @@
+stages:
+  - test
+  - build
+
+frontend:
+  stage: test
+  image: node:18
+  script:
+    - npm install
+    - cd frontend && npm test --if-present && npm run build
+
+backend:
+  stage: test
+  image: node:18
+  script:
+    - npm install
+    - cd backend && npm test --if-present && npm run build
+
+ai:
+  stage: test
+  image: python:3.10
+  script:
+    - pip install -r ai/requirements.txt
+    - echo "AI test placeholder"
+
+docker:
+  stage: build
+  image: docker:stable
+  services:
+    - docker:dind
+  script:
+    - docker build -f docker/Dockerfile.frontend -t registry.example.com/biosonia/frontend:ci .
+    - docker build -f docker/Dockerfile.backend -t registry.example.com/biosonia/backend:ci .
+    - docker build -f docker/Dockerfile.ai -t registry.example.com/biosonia/ai:ci .
+    - echo "# docker login && docker push ..."
