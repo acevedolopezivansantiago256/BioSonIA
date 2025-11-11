@@ -35,6 +35,7 @@ model AIResult {
   top3Json            String?
   espectrogramaBase64 String?
   metadataJson        String?
+  detectionsJson      String?
   analysis            Analysis?
 }
 

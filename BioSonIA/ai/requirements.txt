@@ -1,4 +1,9 @@
 fastapi==0.110.0
+uvicorn==0.27.1
+python-multipart==0.0.6
+numpy>=1.24
+matplotlib>=3.7
+birdnetlib>=0.13
 uvicorn[standard]==0.27.0
 numpy==1.26.2
 librosa==0.10.1

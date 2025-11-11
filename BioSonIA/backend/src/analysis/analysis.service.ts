@@ -24,6 +24,15 @@ export class AnalysisService {
           const fs = require('fs');
           const form = new FormData();
           form.append('file', fs.createReadStream(filePath));
+          // Parámetros opcionales para BirdNET
+          const lat = process.env.AI_LAT;
+          const lon = process.env.AI_LON;
+          const date = process.env.AI_DATE;
+          const minConf = process.env.MIN_CONFIDENCE || '0.6';
+          if (lat) form.append('lat', lat);
+          if (lon) form.append('lon', lon);
+          if (date) form.append('date', date);
+          form.append('min_confidence', minConf);
           const headers = form.getHeaders();
           return axios.post(`${AI_URL}/analyze`, form, { headers });
         })();
@@ -33,6 +42,7 @@ export class AnalysisService {
           top3: res.data.top3,
           espectrograma_base64: res.data.espectrograma_base64 || null,
           espectrograma_birdnet_base64: res.data.espectrograma_birdnet_base64 || null,
+          detecciones: res.data.detecciones || [],
           metadatos: res.data.metadatos || {}
         };
         memoryStore.analyses.set(id, {
@@ -80,6 +90,15 @@ export class AnalysisService {
         const fs = require('fs');
         const form = new FormData();
         form.append('file', fs.createReadStream(filePath));
+        // Parámetros opcionales para BirdNET
+        const lat = process.env.AI_LAT;
+        const lon = process.env.AI_LON;
+        const date = process.env.AI_DATE;
+        const minConf = process.env.MIN_CONFIDENCE || '0.6';
+        if (lat) form.append('lat', lat);
+        if (lon) form.append('lon', lon);
+        if (date) form.append('date', date);
+        form.append('min_confidence', minConf);
         const headers = form.getHeaders();
         return axios.post(`${AI_URL}/analyze`, form, { headers });
       })();
@@ -89,7 +108,8 @@ export class AnalysisService {
           probabilidad: res.data.probabilidad,
           top3Json: JSON.stringify(res.data.top3),
           espectrogramaBase64: res.data.espectrograma_base64 || null,
-          metadataJson: JSON.stringify(res.data.metadatos || {})
+          metadataJson: JSON.stringify(res.data.metadatos || {}),
+          detectionsJson: JSON.stringify(res.data.detecciones || [])
         }
       });
       await prisma.analysis.update({ where: { id: analysis.id }, data: { status: 'done', aiResultId: ai.id } });

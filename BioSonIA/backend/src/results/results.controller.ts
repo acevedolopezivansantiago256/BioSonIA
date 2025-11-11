@@ -24,6 +24,7 @@ export class ResultsController {
       probabilidad: r.probabilidad,
       top3: JSON.parse(r.top3Json || '[]'),
       espectrograma_base64: r.espectrogramaBase64,
+      detecciones: JSON.parse((r as any).detectionsJson || '[]'),
       metadatos: JSON.parse(r.metadataJson || '{}')
     };
   }

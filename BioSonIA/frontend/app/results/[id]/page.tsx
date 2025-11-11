@@ -15,7 +15,7 @@ export default async function ResultPage({ params }: { params: { id: string } })
   if (!data) {
     return <div className="p-6">No se encontró resultado.</div>;
   }
-  const { especie_predicha, probabilidad, top3, espectrograma_base64, espectrograma_birdnet_base64 } = data;
+  const { especie_predicha, probabilidad, top3, espectrograma_base64, espectrograma_birdnet_base64, detecciones } = data;
 
   return (
     <div className="p-6 space-y-4">
@@ -46,6 +46,33 @@ export default async function ResultPage({ params }: { params: { id: string } })
           )}
         </div>
       )}
+      <div>
+        <h2 className="text-xl">Detecciones BirdNET</h2>
+        {Array.isArray(detecciones) && detecciones.length > 0 ? (
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left p-2">Inicio (s)</th>
+                <th className="text-left p-2">Fin (s)</th>
+                <th className="text-left p-2">Especie</th>
+                <th className="text-left p-2">Confianza</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detecciones.map((d: any, i: number) => (
+                <tr key={i} className="border-t">
+                  <td className="p-2">{Number(d.inicio ?? 0).toFixed(2)}</td>
+                  <td className="p-2">{Number(d.fin ?? 0).toFixed(2)}</td>
+                  <td className="p-2">{d.especie} <span className="text-gray-500">({d.nombre_cientifico})</span></td>
+                  <td className="p-2">{Number(d.confianza ?? 0).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-gray-600">Sin detecciones BirdNET.</p>
+        )}
+      </div>
     </div>
   );
 }
