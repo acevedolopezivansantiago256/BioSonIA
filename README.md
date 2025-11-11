@@ -2,17 +2,29 @@ BioSonIA — Guía de desarrollo (rama Develope)
 Esta rama contiene todo el código del proyecto.
 
 Requisitos
-Node.js 18+ y npm
+Node.js 18+
+y npm
 Python 3.10+
 (Opcional) Docker Desktop
+
 Estructura del monorepo
+
+
 frontend/ Next.js (UI, páginas Upload/Resultados)
+
 backend/ Nest.js (API, endpoints /upload, /analysis, /results/:id)
+
 ai/ FastAPI (servidor IA, espectrogramas y análisis)
+
 shared/ tipos y utilidades compartidas
+
 docs/ documentación adicional
+
 scripts/ utilidades para desarrollo y CI
+
 docker/ Dockerfiles y docker-compose.yml
+
+
 Arranque rápido (manual)
 IA (FastAPI):
 Windows: python -m venv .venv && ./.venv/Scripts/activate
@@ -28,9 +40,11 @@ npm run dev → http://localhost:3000
 Flujo de prueba end-to-end
 Subir audio en la UI (/upload) o vía API POST /upload.
 Ver resultados en /results/:id (debe mostrar espectrograma estándar y estilo BirdNET).
+
 Espectrogramas (IA)
 Generación estándar y BirdNET-style disponibles desde /analyze.
 Código clave: ai/server.py y ai/utils/audio_processing.py.
+
 Git y ramas
 Trabajo activo en Develope (o feature/... con PR hacia Develope).
 Stage para estabilización y pruebas; PR hacia main para release.
