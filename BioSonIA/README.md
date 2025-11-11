@@ -1,44 +1,57 @@
-# BioSonIA — Monorepo (Next.js + Nest.js + FastAPI YAMNet)
+# BioSonIA — Documentación principal
 
 Proyecto universitario para identificación de aves por audio (estilo BirdNET).
 
-## Comandos rápidos
+Este `main` contiene únicamente documentación (README). El código vive en las ramas de trabajo.
 
-- `npm install` (en la raíz para workspaces)
-- `npm run dev:front` (en `/frontend`)
-- `npm run dev:back` (en `/backend`)
-- `python -m venv .venv && ./.venv/Scripts/activate` (Windows) o `source .venv/bin/activate` (Linux/Mac)
-- `pip install -r ai/requirements.txt`
-- `python ai/server.py`
-- `npx prisma migrate dev && npx prisma generate` (en `/backend`)
-- `scripts/start-all.sh` (docker-compose)
+## Ramas
 
-## Flujo Git (GitFlow simplificado)
+- `main`: documentación y releases aprobadas.
+- `Develope`: desarrollo activo (todo el código y cambios en curso).
+- `Stage`: estabilización previa a release (pruebas y validaciones).
 
-- Ramas: `main`, `develop`, `stage`.
-- Trabaja en `feature/<nombre>` y crea PR hacia `develop`.
-- Pruebas en `stage` y, si pasan, merge a `main` para release.
+## Cómo ejecutar el proyecto (usar la rama Develope)
 
-## Estructura
+1) Clonar el repositorio y cambiar a `Develope`:
 
-Monorepo con workspaces: `/frontend`, `/backend`, `/ai`, `/shared`, `/docs`, `/scripts`, `/docker`.
+```
+git clone https://github.com/acevedolopezivansantiago256/BioSonIA2.0.git
+cd BioSonIA2.0
+git checkout Develope
+```
 
-## Desarrollo local
+2) Requisitos (en `Develope`):
+- Node.js 18+ y npm
+- Python 3.10+
+- (Opcional) Docker Desktop
 
-1. Copia `.env.example` a `.env` y ajusta variables.
-2. Instala dependencias: `npm install` y `pip install -r ai/requirements.txt`.
-3. Levanta AI: `python ai/server.py` (por defecto puerto 5001).
-4. Levanta backend: `npm run dev` en `/backend`.
-5. Levanta frontend: `npm run dev` en `/frontend`.
+3) Arrancar servicios manualmente:
+- IA (FastAPI):
+  - Windows: `python -m venv .venv && ./.venv/Scripts/activate`
+  - Linux/Mac: `python -m venv .venv && source .venv/bin/activate`
+  - `pip install -r ai/requirements.txt`
+  - `python ai/server.py` (por defecto `http://localhost:5001`)
+- Backend (Nest.js):
+  - `cd backend && npm install && npm run dev` (por defecto `http://localhost:5000`)
+- Frontend (Next.js):
+  - `cd frontend && npm install && npm run dev` (por defecto `http://localhost:3000`)
 
-## Docker
+4) Alternativa con Docker (en `Develope`):
+- Usa `docker-compose` o los scripts del repo (`scripts/start-all.sh`) para levantar todo.
 
-Usa `scripts/start-all.sh` para construir e iniciar todos los servicios con `docker-compose`.
+## Flujo de trabajo (propuesto)
 
-## CI/CD
+- Desarrollar en `Develope` (o ramas `feature/...` que se integran en `Develope`).
+- Promover a `Stage` para pruebas integradas.
+- Si todo pasa, crear PR de `Stage` a `main` para release.
 
-Plantillas incluidas para GitHub Actions (principal), GitLab CI, Azure DevOps y Jenkins. Edita secretos siguiendo `docs/ci_cd.md`.
+## Enlaces útiles
 
-## Notas de privacidad
+- Código en `Develope`: https://github.com/acevedolopezivansantiago256/BioSonIA2.0/tree/Develope
+- Rama de pruebas `Stage`: https://github.com/acevedolopezivansantiago256/BioSonIA2.0/tree/Stage
+- Releases y documentación `main`: https://github.com/acevedolopezivansantiago256/BioSonIA2.0/tree/main
 
-Revisa `docs/README_universidad.md` y `docs/arquitectura.md` para políticas de manejo de audio y datos personales.
+## Notas
+
+- Este README describe cómo ejecutar el proyecto desde `Develope`, donde se encuentra el código fuente.
+- Si necesitas una guía más detallada (API, arquitectura, CI/CD), consúltala en los directorios del repo dentro de la rama `Develope`.
