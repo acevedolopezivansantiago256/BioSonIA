@@ -1,44 +1,50 @@
-# BioSonIA — Monorepo (Next.js + Nest.js + FastAPI YAMNet)
+# BioSonIA — Guía de desarrollo (rama Develope)
 
-Proyecto universitario para identificación de aves por audio (estilo BirdNET).
+Esta rama contiene todo el código del proyecto.
 
-## Comandos rápidos
+## Requisitos
+- Node.js 18+ y npm
+- Python 3.10+
+- (Opcional) Docker Desktop
 
-- `npm install` (en la raíz para workspaces)
-- `npm run dev:front` (en `/frontend`)
-- `npm run dev:back` (en `/backend`)
-- `python -m venv .venv && ./.venv/Scripts/activate` (Windows) o `source .venv/bin/activate` (Linux/Mac)
-- `pip install -r ai/requirements.txt`
-- `python ai/server.py`
-- `npx prisma migrate dev && npx prisma generate` (en `/backend`)
-- `scripts/start-all.sh` (docker-compose)
+## Estructura del monorepo
+- `frontend/` Next.js (UI, páginas Upload/Resultados)
+- `backend/` Nest.js (API, endpoints `/upload`, `/analysis`, `/results/:id`)
+- `ai/` FastAPI (servidor IA, espectrogramas y análisis)
+- `shared/` tipos y utilidades compartidas
+- `docs/` documentación adicional
+- `scripts/` utilidades para desarrollo y CI
+- `docker/` Dockerfiles y `docker-compose.yml`
 
-## Flujo Git (GitFlow simplificado)
+## Arranque rápido (manual)
+1. IA (FastAPI):
+   - Windows: `python -m venv .venv && ./.venv/Scripts/activate`
+   - Linux/Mac: `python -m venv .venv && source .venv/bin/activate`
+   - `pip install -r ai/requirements.txt`
+   - `python ai/server.py` → `http://localhost:5001`
+2. Backend (Nest.js):
+   - `cd backend && npm install`
+   - `npm run dev` → `http://localhost:5000`
+3. Frontend (Next.js):
+   - `cd frontend && npm install`
+   - `npm run dev` → `http://localhost:3000`
 
-- Ramas: `main`, `develop`, `stage`.
-- Trabaja en `feature/<nombre>` y crea PR hacia `develop`.
-- Pruebas en `stage` y, si pasan, merge a `main` para release.
+## Flujo de prueba end-to-end
+- Subir audio en la UI (`/upload`) o vía API `POST /upload`.
+- Ver resultados en `/results/:id` (debe mostrar espectrograma estándar y estilo BirdNET).
 
-## Estructura
+## Espectrogramas (IA)
+- Generación estándar y BirdNET-style disponibles desde `/analyze`.
+- Código clave: `ai/server.py` y `ai/utils/audio_processing.py`.
 
-Monorepo con workspaces: `/frontend`, `/backend`, `/ai`, `/shared`, `/docs`, `/scripts`, `/docker`.
-
-## Desarrollo local
-
-1. Copia `.env.example` a `.env` y ajusta variables.
-2. Instala dependencias: `npm install` y `pip install -r ai/requirements.txt`.
-3. Levanta AI: `python ai/server.py` (por defecto puerto 5001).
-4. Levanta backend: `npm run dev` en `/backend`.
-5. Levanta frontend: `npm run dev` en `/frontend`.
+## Git y ramas
+- Trabajo activo en `Develope` (o `feature/...` con PR hacia `Develope`).
+- `Stage` para estabilización y pruebas; PR hacia `main` para release.
+- `main` mantiene únicamente documentación (README) y versiones aprobadas.
 
 ## Docker
+- Scripts en `scripts/start-all.sh` y `docker/docker-compose.yml` para levantar los servicios.
 
-Usa `scripts/start-all.sh` para construir e iniciar todos los servicios con `docker-compose`.
-
-## CI/CD
-
-Plantillas incluidas para GitHub Actions (principal), GitLab CI, Azure DevOps y Jenkins. Edita secretos siguiendo `docs/ci_cd.md`.
-
-## Notas de privacidad
-
-Revisa `docs/README_universidad.md` y `docs/arquitectura.md` para políticas de manejo de audio y datos personales.
+## Notas
+- Variables de entorno: copia `.env.example` a `.env` en cada servicio si aplica.
+- Si encuentras issues, revisa logs de `backend`, `frontend` y `ai`.
