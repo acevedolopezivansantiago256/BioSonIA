@@ -14,6 +14,15 @@ export default function DocsPage() {
   const onPrint = () => window.print();
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 print:p-0">
+      <style>{`
+        @media print {
+          header { display: none !important; }
+          nav { display: none !important; }
+          body { background: #ffffff !important; }
+          .btn-primary { display: none !important; }
+          .print\:p-0 { padding: 0 !important; }
+        }
+      `}</style>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Guía BioSonIA (Frontend, Backend, IA)</h1>
         <button className="btn-primary" onClick={onPrint}>Descargar PDF</button>
