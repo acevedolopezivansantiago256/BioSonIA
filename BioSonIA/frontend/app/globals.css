@@ -8,4 +8,23 @@ html, body {
 
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background-color: #ECF0F1;
+}
+
+.card {
+  @apply bg-white rounded-xl shadow-lg border border-gray-200;
+}
+
+.btn-primary {
+  @apply px-4 py-2 rounded text-white transition;
+  background-image: linear-gradient(180deg, #38d27a 0%, #2ECC71 60%, #29b866 100%);
+  box-shadow: 0 8px 18px rgba(46, 204, 113, 0.35);
+}
+
+.input {
+  @apply border border-gray-300 rounded px-3 py-2 w-full bg-white focus:outline-none focus:ring-2 focus:ring-bioson-blue;
+}
+
+.card-lg {
+  @apply bg-white rounded-2xl shadow-2xl border border-gray-200;
 }

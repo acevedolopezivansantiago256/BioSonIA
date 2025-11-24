@@ -1,5 +1,8 @@
 import './globals.css';
 import React from 'react';
+import NavBar from '../components/NavBar';
+
+const LOGO_SRC = process.env.NEXT_PUBLIC_LOGO_PATH || '/logo.png';
 
 export const metadata = {
   title: 'BioSonIA',
@@ -10,11 +13,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body>
-        <nav className="p-4 bg-gray-100 flex gap-4">
-          <a href="/" className="underline">Inicio</a>
-          <a href="/upload" className="underline">Subir</a>
-          <a href="/dashboard" className="underline">Dashboard</a>
-        </nav>
+        <header className="p-4 bg-bioson-grayLight">
+          <div className="flex items-center gap-4">
+            <a href="/">
+              <img src={LOGO_SRC} alt="Logo" className="w-36 h-auto" />
+            </a>
+            <NavBar />
+          </div>
+        </header>
         <main>{children}</main>
       </body>
     </html>
