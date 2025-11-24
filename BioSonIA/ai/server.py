@@ -44,7 +44,7 @@ async def analyze(
         b64_birdnet = None
         # Importación perezosa de utilidades de audio, con fallback si no están disponibles
         try:
-            from utils.audio_processing import load_audio_mono_16k, mel_spectrogram, spectrogram_png_bytes
+            from utils.audio_processing import load_audio_mono_16k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes
             y, sr = load_audio_mono_16k(io.BytesIO(raw))
             S = mel_spectrogram(y, sr)
             # Espectrograma estándar
@@ -53,12 +53,15 @@ async def analyze(
             # Espectrograma estilo BirdNET (cmap viridis, sin colorbar)
             png_birdnet = spectrogram_png_bytes(S, cmap='viridis', title='BirdNET-style Spectrogram')
             b64_birdnet = base64.b64encode(png_birdnet).decode('ascii')
+            png_wave = waveform_clean_noisy_png_bytes(y, sr)
+            b64_wave = base64.b64encode(png_wave).decode('ascii')
         except Exception:
             # Fallback: no procesamos espectrograma si faltan dependencias
             y = None
             sr = 16000
             b64 = None
             b64_birdnet = None
+            b64_wave = None
 
         arr = [] if (y is None or getattr(y, 'size', 0) == 0) else y
         especie_predicha, probabilidad, top3 = clf.predict(arr, sr)
@@ -115,6 +118,7 @@ async def analyze(
             "top3": [{"especie": t[0], "prob": float(t[1])} for t in top3],
             "espectrograma_base64": b64,
             "espectrograma_birdnet_base64": b64_birdnet,
+            "waveform_pair_base64": b64_wave,
             "detecciones": detecciones,
             "metadatos": {
                 "sr": sr,

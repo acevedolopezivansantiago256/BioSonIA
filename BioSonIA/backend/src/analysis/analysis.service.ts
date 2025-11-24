@@ -42,6 +42,7 @@ export class AnalysisService {
           top3: res.data.top3,
           espectrograma_base64: res.data.espectrograma_base64 || null,
           espectrograma_birdnet_base64: res.data.espectrograma_birdnet_base64 || null,
+          waveform_pair_base64: res.data.waveform_pair_base64 || null,
           detecciones: res.data.detecciones || [],
           metadatos: res.data.metadatos || {}
         };

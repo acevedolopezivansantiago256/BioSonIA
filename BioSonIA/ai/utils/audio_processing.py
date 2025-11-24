@@ -2,23 +2,27 @@ import io
 import wave
 import numpy as np
 import matplotlib.pyplot as plt
+try:
+    import librosa
+except Exception:
+    librosa = None
 
 def load_audio_mono_16k(buf: io.BytesIO):
-    """Carga audio WAV, mezcla a mono y re-muestrea a 16 kHz.
-
-    Esta implementación evita dependencias pesadas (librosa/soundfile) y usa
-    únicamente librerías estándar + numpy. Soporta WAV PCM de 8/16/32 bits.
-    """
     buf.seek(0)
+    if librosa is not None:
+        try:
+            data, sr = librosa.load(buf, sr=16000, mono=True)
+            return data.astype(np.float32), int(sr)
+        except Exception:
+            pass
     try:
         with wave.open(buf, 'rb') as w:
             sr = w.getframerate()
             n_channels = w.getnchannels()
-            sampwidth = w.getsampwidth()  # bytes per sample
+            sampwidth = w.getsampwidth()
             num_frames = w.getnframes()
             raw = w.readframes(num_frames)
 
-        # Convertir a float32 en rango [-1, 1]
         if sampwidth == 1:
             data = np.frombuffer(raw, dtype=np.uint8)
             data = (data.astype(np.float32) - 128.0) / 128.0
@@ -27,13 +31,11 @@ def load_audio_mono_16k(buf: io.BytesIO):
         elif sampwidth == 4:
             data = np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
         else:
-            # Ancho no soportado: intentar int16 por defecto
             data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
 
         if n_channels > 1:
             data = data.reshape(-1, n_channels).mean(axis=1)
 
-        # Re-muestrear a 16 kHz mediante interpolación lineal
         if sr != 16000 and sr > 0 and data.size > 0:
             duration = data.size / sr
             t_orig = np.linspace(0.0, duration, num=data.size, endpoint=False)
@@ -44,15 +46,9 @@ def load_audio_mono_16k(buf: io.BytesIO):
 
         return data, sr
     except Exception:
-        # Si falla (formato no-WAV, etc.), devolver vacío para activar degradación.
         return np.array([], dtype=np.float32), 16000
 
 def mel_spectrogram(y: np.ndarray, sr: int):
-    """Calcula un espectrograma log-power simple vía STFT.
-
-    Nota: No usa escala mel para evitar dependencias. Aun así, produce
-    una visualización útil para la UI.
-    """
     if y is None or y.size == 0:
         return np.zeros((1, 1), dtype=np.float32)
 
@@ -87,18 +83,34 @@ def mel_spectrogram(y: np.ndarray, sr: int):
     return S_db
 
 def spectrogram_png_bytes(S_db: np.ndarray, cmap: str = 'magma', title: str = 'Spectrogram'):
-    """Renderiza el espectrograma en PNG.
-
-    Parámetros:
-    - cmap: mapa de colores de matplotlib (p. ej., 'magma', 'viridis').
-    - title: título a mostrar en la figura.
-    """
     fig, ax = plt.subplots(figsize=(6, 3))
     img = ax.imshow(S_db, origin='lower', aspect='auto', cmap=cmap)
-    # Para estilo tipo BirdNET, típicamente sin colorbar; lo hacemos opcional
     if cmap != 'viridis':
         fig.colorbar(img, ax=ax, format='%+2.0f dB')
     ax.set(title=title, xlabel='Frames', ylabel='Freq bins')
+    buf = io.BytesIO()
+    fig.tight_layout()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+def waveform_clean_noisy_png_bytes(y: np.ndarray, sr: int):
+    if y is None or y.size == 0:
+        y = np.zeros(16000, dtype=np.float32)
+        sr = 16000
+    duration = y.size / float(sr)
+    t = np.linspace(0.0, duration, num=y.size, endpoint=False)
+    noise = np.random.normal(0.0, 0.02, size=y.size).astype(np.float32)
+    y_noisy = np.clip(y + noise, -1.0, 1.0)
+    fig, axes = plt.subplots(2, 1, figsize=(10, 4), sharex=True)
+    axes[0].plot(t, y, color='#1f77b4')
+    axes[0].set_title('Audio Limpio en el dominio del tiempo')
+    axes[0].set_ylabel('Amplitud')
+    axes[1].plot(t, y_noisy, color='#d62728')
+    axes[1].set_title('Audio Ruidoso en el dominio del tiempo')
+    axes[1].set_xlabel('Tiempo [s]')
+    axes[1].set_ylabel('Amplitud')
     buf = io.BytesIO()
     fig.tight_layout()
     fig.savefig(buf, format='png')

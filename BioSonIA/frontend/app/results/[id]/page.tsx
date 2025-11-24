@@ -15,7 +15,7 @@ export default async function ResultPage({ params }: { params: { id: string } })
   if (!data) {
     return <div className="p-6">No se encontró resultado.</div>;
   }
-  const { especie_predicha, probabilidad, top3, espectrograma_base64, espectrograma_birdnet_base64, detecciones } = data;
+  const { especie_predicha, probabilidad, top3, espectrograma_base64, espectrograma_birdnet_base64, waveform_pair_base64, detecciones } = data;
 
   return (
     <div className="p-6 space-y-4">
@@ -30,6 +30,12 @@ export default async function ResultPage({ params }: { params: { id: string } })
           ))}
         </ul>
       </div>
+      {waveform_pair_base64 && (
+        <div>
+          <h2 className="text-xl">Señal en el dominio del tiempo</h2>
+          <img src={`data:image/png;base64,${waveform_pair_base64}`} alt="Waveform clean/noisy" />
+        </div>
+      )}
       {(espectrograma_base64 || espectrograma_birdnet_base64) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {espectrograma_base64 && (
