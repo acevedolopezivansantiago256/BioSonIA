@@ -21,13 +21,16 @@ export default async function ResultPage({ params }: { params: { id: string } })
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Resultado de análisis</h1>
       <p>Especie principal: <strong>{especie_predicha}</strong></p>
-      <p>Probabilidad: {(probabilidad * 100).toFixed(1)}%</p>
+      <p>Probabilidad: {(((probabilidad ?? 0) * 100)).toFixed(1)}%</p>
       <div>
         <h2 className="text-xl">Top-3</h2>
         <ul className="list-disc ml-6">
-          {top3?.map((t: any, i: number) => (
-            <li key={i}>{t.especie} — {(t.prob * 100).toFixed(1)}%</li>
-          ))}
+          {top3?.map((t: any, i: number) => {
+            const p = t?.prob ?? t?.probabilidad ?? 0;
+            return (
+              <li key={i}>{t.especie} — {(p * 100).toFixed(1)}%</li>
+            );
+          })}
         </ul>
       </div>
       {waveform_pair_base64 && (
