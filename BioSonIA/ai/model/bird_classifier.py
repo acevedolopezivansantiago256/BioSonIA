@@ -1,5 +1,6 @@
 import csv
 import random
+import numpy as np
 
 class BirdClassifier:
     def __init__(self):
