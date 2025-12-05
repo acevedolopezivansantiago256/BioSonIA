@@ -69,7 +69,7 @@ export default async function ResultPage({ params }: { params: { id: string } })
             </tbody>
           </table>
         ) : (
-          <p className="text-gray-600">Sin detecciones BirdNET.</p>
+          <p className="text-gray-600">Semillero Tesla SENA.</p>
         )}
       </div>
     </div>
