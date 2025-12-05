@@ -60,11 +60,32 @@ Esta rama contiene todo el código del proyecto.
 
 ## Flujo de prueba end-to-end
 - Subir audio en la UI (`/upload`) o vía API `POST /upload`.
-- Ver resultados en `/results/:id` (debe mostrar espectrograma estándar y estilo BirdNET).
+- Ver resultados en `/results/:id` (muestra el espectrograma estándar).
 
 ## Espectrogramas (IA)
-- Generación estándar y BirdNET-style disponibles desde `/analyze`.
+- La IA genera el espectrograma estándar y uno estilo BirdNET desde `/analyze`.
+- El frontend muestra únicamente el espectrograma estándar.
 - Código clave: `ai/server.py` y `ai/utils/audio_processing.py`.
+
+## Clasificador YAMNet + scikit‑learn (entrenamiento)
+1. Preparar datos de entrenamiento:
+   - Estructura: `ai/data/train/<Clase>/*.wav|*.mp3` (por ejemplo, `ai/data/train/Columba livia/*.wav`).
+2. Activar entorno virtual e instalar dependencias:
+   - Windows: `python -m venv ai/.venv && ai/.venv/Scripts/activate`
+   - Linux/Mac: `python -m venv ai/.venv && source ai/.venv/bin/activate`
+   - Instalar: `pip install -r ai/requirements.txt`
+3. Entrenar el modelo:
+   - `python ai/model/train_yamnet_classifier.py` (opcional: `python ai/model/train_yamnet_classifier.py <ruta/dataset>`)
+   - Genera `ai/model/yamnet_logreg.pkl` y `ai/model/yamnet_logreg.json`.
+4. Reiniciar la IA:
+   - `python ai/server.py`
+   - Salud: `GET http://localhost:5001/health` debe reportar `model: yamnet_sklearn`.
+
+### Notas de compatibilidad (TensorFlow)
+- Si aparece un conflicto con `typing-extensions`:
+  - Actualiza: `pip install typing-extensions==4.12.2`.
+- Si YAMNet falla al cargar, considera actualizar TensorFlow:
+  - `pip install --upgrade tensorflow tensorflow-hub`.
 
 ## Git y ramas
 - Trabajo activo en `Develope` (o `feature/...` con PR hacia `Develope`).

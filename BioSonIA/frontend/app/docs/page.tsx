@@ -88,6 +88,57 @@ export default function DocsPage() {
           <li>IA: <code>python server.py</code> en <code>/ai</code> → <code>http://localhost:5001</code>.</li>
         </ul>
       </Section>
+
+      <Section title="Guía de uso de BioSonIA">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="card p-4 flex items-center gap-3">
+              <span className="text-2xl">👤</span>
+              <div>
+                <div className="font-semibold">Regístrate</div>
+                <div className="text-sm text-bioson-grayDark">Crea tu cuenta</div>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="text-2xl">🔑</span>
+              <div>
+                <div className="font-semibold">Inicia sesión</div>
+                <div className="text-sm text-bioson-grayDark">Accede con tus credenciales</div>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="text-2xl">⬆️</span>
+              <div>
+                <div className="font-semibold">Sube un audio</div>
+                <div className="text-sm text-bioson-grayDark">Carga .wav o .mp3</div>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="card p-4 flex items-center gap-3">
+              <span className="text-2xl">⏱️</span>
+              <div>
+                <div className="font-semibold">Espera el análisis</div>
+                <div className="text-sm text-bioson-grayDark">Procesamos tu audio</div>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <div>
+                <div className="font-semibold">Revisa tu Dashboard</div>
+                <div className="text-sm text-bioson-grayDark">Consulta métricas y resultados</div>
+              </div>
+            </div>
+            <div className="card p-4 flex items-center gap-3">
+              <span className="text-2xl">🗺️</span>
+              <div>
+                <div className="font-semibold">Explora resultados</div>
+                <div className="text-sm text-bioson-grayDark">Visualiza espectrogramas y detecciones</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
     </div>
   );
 }
