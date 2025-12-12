@@ -112,9 +112,14 @@ async def analyze(
                 except Exception:
                     pass
 
+        final_especie = especie_predicha
+        final_prob = float(probabilidad)
+        if especie_birdnet_principal is not None and prob_birdnet_principal is not None:
+            final_especie = especie_birdnet_principal
+            final_prob = float(prob_birdnet_principal)
         return JSONResponse({
-            "especie_predicha": especie_predicha,
-            "probabilidad": float(probabilidad),
+            "especie_predicha": final_especie,
+            "probabilidad": final_prob,
             "top3": [{"especie": t[0], "prob": float(t[1])} for t in top3],
             "espectrograma_base64": b64,
             "espectrograma_birdnet_base64": b64_birdnet,

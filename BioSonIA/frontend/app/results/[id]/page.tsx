@@ -1,5 +1,7 @@
 import React from 'react';
 import { api } from "../../../lib/api";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 async function getData(id: string) {
   try {

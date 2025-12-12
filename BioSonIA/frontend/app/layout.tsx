@@ -8,10 +8,12 @@ export const metadata = {
   title: 'BioSonIA',
   description: 'Identificación de aves por audio',
 };
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body>
         <header className="p-4 bg-bioson-grayLight">
           <div className="flex items-center gap-4">

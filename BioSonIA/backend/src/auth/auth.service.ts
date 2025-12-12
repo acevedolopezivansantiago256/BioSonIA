@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+let prisma: PrismaClient | null = null;
 
 @Injectable()
 export class AuthService {
@@ -14,10 +13,11 @@ export class AuthService {
       // Modo sin BD: aceptar registro y devolver un usuario demo
       return { ok: true, user: { id: 'demo', email } };
     }
-    const exists = await prisma.user.findUnique({ where: { email } });
+    const client = prisma ?? (prisma = new PrismaClient());
+    const exists = await client.user.findUnique({ where: { email } });
     if (exists) return { ok: false, message: 'Email ya registrado' };
     const hash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({ data: { email, passwordHash: hash } });
+    const user = await client.user.create({ data: { email, passwordHash: hash } });
     return { ok: true, user: { id: user.id, email: user.email } };
   }
 
@@ -28,7 +28,8 @@ export class AuthService {
       const refreshToken = await this.jwt.signAsync({ sub: 'demo' }, { expiresIn: '7d' });
       return { ok: true, accessToken, refreshToken };
     }
-    const user = await prisma.user.findUnique({ where: { email } });
+    const client = prisma ?? (prisma = new PrismaClient());
+    const user = await client.user.findUnique({ where: { email } });
     if (!user) return { ok: false, message: 'Credenciales inválidas' };
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return { ok: false, message: 'Credenciales inválidas' };

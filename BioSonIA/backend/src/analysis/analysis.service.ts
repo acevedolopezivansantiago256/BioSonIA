@@ -3,7 +3,7 @@ import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 import { memoryStore } from '../shared/inmemory.store';
 
-const prisma = new PrismaClient();
+let prisma: PrismaClient | null = null;
 
 @Injectable()
 export class AnalysisService {
@@ -78,10 +78,11 @@ export class AnalysisService {
     }
 
     // Flujo normal con Prisma
-    const file = await prisma.file.create({
+    const client = prisma ?? (prisma = new PrismaClient());
+    const file = await client.file.create({
       data: { path: filePath, mimeType: 'audio', size: 0 },
     });
-    const analysis = await prisma.analysis.create({
+    const analysis = await client.analysis.create({
       data: { fileId: file.id, status: 'running' },
     });
     try {
@@ -103,7 +104,7 @@ export class AnalysisService {
         const headers = form.getHeaders();
         return axios.post(`${AI_URL}/analyze`, form, { headers });
       })();
-      const ai = await prisma.aIResult.create({
+      const ai = await client.aIResult.create({
         data: {
           especie: res.data.especie_predicha,
           probabilidad: res.data.probabilidad,
@@ -113,9 +114,9 @@ export class AnalysisService {
           detectionsJson: JSON.stringify(res.data.detecciones || [])
         }
       });
-      await prisma.analysis.update({ where: { id: analysis.id }, data: { status: 'done', aiResultId: ai.id } });
+      await client.analysis.update({ where: { id: analysis.id }, data: { status: 'done', aiResultId: ai.id } });
     } catch (e) {
-      await prisma.analysis.update({ where: { id: analysis.id }, data: { status: 'failed' } });
+      await client.analysis.update({ where: { id: analysis.id }, data: { status: 'failed' } });
     }
     return analysis.id;
   }

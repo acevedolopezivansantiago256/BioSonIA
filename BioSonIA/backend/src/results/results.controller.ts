@@ -2,7 +2,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { memoryStore, AnalysisRecord } from '../shared/inmemory.store';
 
-const prisma = new PrismaClient();
+let prisma: PrismaClient | null = null;
 
 @Controller()
 export class ResultsController {
@@ -13,7 +13,8 @@ export class ResultsController {
       if (!rec || !rec.result) return {};
       return rec.result;
     }
-    const analysis = await prisma.analysis.findUnique({
+    const client = prisma ?? (prisma = new PrismaClient());
+    const analysis = await client.analysis.findUnique({
       where: { id },
       include: { aiResult: true }
     });
@@ -35,7 +36,8 @@ export class ResultsController {
       const arr = Array.from(memoryStore.analyses.values()) as AnalysisRecord[];
       return arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
-    const list = await prisma.analysis.findMany({ include: { aiResult: true }, orderBy: { createdAt: 'desc' } });
+    const client = prisma ?? (prisma = new PrismaClient());
+    const list = await client.analysis.findMany({ include: { aiResult: true }, orderBy: { createdAt: 'desc' } });
     return list;
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { api } from "../../lib/api";
+export const dynamic = 'force-dynamic';
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
