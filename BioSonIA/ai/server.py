@@ -35,6 +35,22 @@ _ebird_tax_code_to_sci: dict = {}
 _ebird_tax_loaded = False
 _ebird_recent_cache: dict = {}
 
+def _radius_for_context(area_context: Optional[str]) -> float:
+    s = str(area_context or "").lower().strip()
+    if s in ("rural", "natural", "naturales"):
+        return 80.0
+    if s in ("urban", "peri-urban", "periurban", "urbano", "periurbano"):
+        return 50.0
+    return 50.0
+
+def _km_to_deg(lat: float, km: float):
+    lat_deg = float(km) / 111.32
+    c = abs(math.cos(math.radians(float(lat))))
+    if c < 0.05:
+        c = 0.05
+    lon_deg = float(km) / (111.32 * c)
+    return lat_deg, lon_deg
+
 def _ebird_load_taxonomy():
     global _ebird_tax_loaded, _ebird_tax_code_to_sci
     if _ebird_tax_loaded:
@@ -88,13 +104,15 @@ def ebird_recent_species_near(lat: Optional[float], lon: Optional[float], dist_k
     except Exception:
         return []
 
-def gbif_species_near(lat: Optional[float], lon: Optional[float], size_deg: float = 0.5, limit: int = 300) -> List[str]:
+def gbif_species_near(lat: Optional[float], lon: Optional[float], size_deg: float = 0.5, limit: int = 300, radius_km: Optional[float] = None, area_context: Optional[str] = None) -> List[str]:
     if lat is None or lon is None:
         return []
-    min_lat = max(-90.0, float(lat) - size_deg)
-    max_lat = min(90.0, float(lat) + size_deg)
-    min_lon = float(lon) - size_deg
-    max_lon = float(lon) + size_deg
+    rk = radius_km if radius_km is not None else _radius_for_context(area_context)
+    lat_deg, lon_deg = _km_to_deg(float(lat), float(rk)) if rk is not None else (size_deg, size_deg)
+    min_lat = max(-90.0, float(lat) - lat_deg)
+    max_lat = min(90.0, float(lat) + lat_deg)
+    min_lon = float(lon) - lon_deg
+    max_lon = float(lon) + lon_deg
     poly = f"POLYGON(({min_lon} {min_lat},{max_lon} {min_lat},{max_lon} {max_lat},{min_lon} {max_lat},{min_lon} {min_lat}))"
     url = f"https://api.gbif.org/v1/occurrence/search?hasCoordinate=true&limit={limit}&geometry={parse.quote(poly)}"
     try:
@@ -110,7 +128,7 @@ def gbif_species_near(lat: Optional[float], lon: Optional[float], size_deg: floa
         return []
 
 _seasonal_cache: dict = {}
-def seasonal_prior_for(scientific_name: Optional[str], date: Optional[str], lat: Optional[float], lon: Optional[float], size_deg: float = 0.5) -> float:
+def seasonal_prior_for(scientific_name: Optional[str], date: Optional[str], lat: Optional[float], lon: Optional[float], size_deg: float = 0.5, radius_km: Optional[float] = None, area_context: Optional[str] = None) -> float:
     if scientific_name is None or lat is None or lon is None:
         return 1.0
     try:
@@ -121,13 +139,15 @@ def seasonal_prior_for(scientific_name: Optional[str], date: Optional[str], lat:
                 month = max(1, min(12, int(parts[1])))
     except Exception:
         month = 1
-    key = f"{scientific_name}|{month}|{lat}|{lon}|{size_deg}"
+    rk = radius_km if radius_km is not None else _radius_for_context(area_context)
+    key = f"{scientific_name}|{month}|{lat}|{lon}|{rk if rk is not None else size_deg}"
     if key in _seasonal_cache:
         return float(_seasonal_cache[key])
-    min_lat = max(-90.0, float(lat) - size_deg)
-    max_lat = min(90.0, float(lat) + size_deg)
-    min_lon = float(lon) - size_deg
-    max_lon = float(lon) + size_deg
+    lat_deg, lon_deg = _km_to_deg(float(lat), float(rk)) if rk is not None else (size_deg, size_deg)
+    min_lat = max(-90.0, float(lat) - lat_deg)
+    max_lat = min(90.0, float(lat) + lat_deg)
+    min_lon = float(lon) - lon_deg
+    max_lon = float(lon) + lon_deg
     poly = f"POLYGON(({min_lon} {min_lat},{max_lon} {min_lat},{max_lon} {max_lat},{min_lon} {max_lat},{min_lon} {min_lat}))"
     base = "https://api.gbif.org/v1/occurrence/search"
     facet_qs = f"hasCoordinate=true&limit=0&geometry={parse.quote(poly)}&scientificName={parse.quote(scientific_name)}&facet=month&facetLimit=12"
@@ -168,6 +188,7 @@ async def analyze(
     lon: Optional[float] = Form(None),
     date: Optional[str] = Form(None),  # YYYY-MM-DD
     min_confidence: float = Form(0.6),
+    area_context: Optional[str] = Form(None),
 ):
     try:
         raw = await file.read()
@@ -255,15 +276,16 @@ async def analyze(
                         "fin": float(d.get('end_time', 0.0)),
                     })
                 if detecciones:
-                    geo_list = gbif_species_near(lat, lon)
-                    eb_list = ebird_recent_species_near(lat, lon)
+                    rk = _radius_for_context(area_context)
+                    geo_list = gbif_species_near(lat, lon, radius_km=rk, area_context=area_context)
+                    eb_list = ebird_recent_species_near(lat, lon, dist_km=int(round(rk)))
                     geo_set = set(geo_list) | set(eb_list)
                     fused = []
                     for d in detecciones:
                         sci = d.get("nombre_cientifico")
                         ap = float(d.get("confianza", 0.0))
                         gp = 1.0 if (sci and sci in geo_set) else 0.0
-                        sp_base = seasonal_prior_for(sci, date, lat, lon)
+                        sp_base = seasonal_prior_for(sci, date, lat, lon, radius_km=rk, area_context=area_context)
                         sp_boost = 0.5 if (sci and sci in set(eb_list)) else 0.0
                         sp = max(sp_base, sp_boost)
                         fs = ap * gp * sp
