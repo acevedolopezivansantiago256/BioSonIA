@@ -8,7 +8,10 @@ from urllib import request, parse
 from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
-from ai.model.bird_classifier import BirdClassifier
+try:
+    from ai.model.bird_classifier import BirdClassifier
+except Exception:
+    from model.bird_classifier import BirdClassifier
 try:
     from birdnetlib.analyzer import Analyzer
     from birdnetlib import Recording
@@ -26,6 +29,64 @@ if BN_AVAILABLE:
         bn_analyzer = Analyzer()
     except Exception:
         bn_analyzer = None
+
+EB_TOKEN = os.environ.get('EBIRD_API_TOKEN')
+_ebird_tax_code_to_sci: dict = {}
+_ebird_tax_loaded = False
+_ebird_recent_cache: dict = {}
+
+def _ebird_load_taxonomy():
+    global _ebird_tax_loaded, _ebird_tax_code_to_sci
+    if _ebird_tax_loaded:
+        return
+    if not EB_TOKEN:
+        _ebird_tax_loaded = True
+        return
+    try:
+        url = "https://api.ebird.org/v2/ref/taxonomy/ebird?fmt=json"
+        req = request.Request(url, headers={"x-ebirdapitoken": EB_TOKEN})
+        with request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        m = {}
+        for r in data or []:
+            code = r.get('speciesCode')
+            sci = r.get('sciName') or r.get('scientificName')
+            if code and sci:
+                m[code] = sci
+        _ebird_tax_code_to_sci = m
+    except Exception:
+        _ebird_tax_code_to_sci = {}
+    finally:
+        _ebird_tax_loaded = True
+
+def ebird_recent_species_near(lat: Optional[float], lon: Optional[float], dist_km: int = 50, back_days: int = 30) -> List[str]:
+    if lat is None or lon is None or not EB_TOKEN:
+        return []
+    key = f"{float(lat)}|{float(lon)}|{int(dist_km)}|{int(back_days)}"
+    if key in _ebird_recent_cache:
+        v = _ebird_recent_cache.get(key)
+        if isinstance(v, list):
+            return v
+    url = f"https://api.ebird.org/v2/data/obs/geo/recent?lat={float(lat)}&lng={float(lon)}&dist={int(dist_km)}&back={int(back_days)}"
+    try:
+        req = request.Request(url, headers={"x-ebirdapitoken": EB_TOKEN})
+        with request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        _ebird_load_taxonomy()
+        names = []
+        for r in data or []:
+            sci = r.get('sciName') or r.get('scientificName')
+            if not sci:
+                code = r.get('speciesCode')
+                if code and code in _ebird_tax_code_to_sci:
+                    sci = _ebird_tax_code_to_sci.get(code)
+            if sci:
+                names.append(sci)
+        out = list(set(names))
+        _ebird_recent_cache[key] = out
+        return out
+    except Exception:
+        return []
 
 def gbif_species_near(lat: Optional[float], lon: Optional[float], size_deg: float = 0.5, limit: int = 300) -> List[str]:
     if lat is None or lon is None:
@@ -48,8 +109,53 @@ def gbif_species_near(lat: Optional[float], lon: Optional[float], size_deg: floa
     except Exception:
         return []
 
-def seasonal_prior_for(scientific_name: Optional[str], date: Optional[str]) -> float:
-    return 1.0
+_seasonal_cache: dict = {}
+def seasonal_prior_for(scientific_name: Optional[str], date: Optional[str], lat: Optional[float], lon: Optional[float], size_deg: float = 0.5) -> float:
+    if scientific_name is None or lat is None or lon is None:
+        return 1.0
+    try:
+        month = 1
+        if date:
+            parts = str(date).split('-')
+            if len(parts) >= 2:
+                month = max(1, min(12, int(parts[1])))
+    except Exception:
+        month = 1
+    key = f"{scientific_name}|{month}|{lat}|{lon}|{size_deg}"
+    if key in _seasonal_cache:
+        return float(_seasonal_cache[key])
+    min_lat = max(-90.0, float(lat) - size_deg)
+    max_lat = min(90.0, float(lat) + size_deg)
+    min_lon = float(lon) - size_deg
+    max_lon = float(lon) + size_deg
+    poly = f"POLYGON(({min_lon} {min_lat},{max_lon} {min_lat},{max_lon} {max_lat},{min_lon} {max_lat},{min_lon} {min_lat}))"
+    base = "https://api.gbif.org/v1/occurrence/search"
+    facet_qs = f"hasCoordinate=true&limit=0&geometry={parse.quote(poly)}&scientificName={parse.quote(scientific_name)}&facet=month&facetLimit=12"
+    url = f"{base}?{facet_qs}"
+    try:
+        with request.urlopen(url, timeout=6) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        facets = data.get('facets') or []
+        month_counts = {}
+        for f in facets:
+            if f.get('field') == 'month':
+                for c in f.get('counts', []):
+                    m = int(c.get('name'))
+                    v = int(c.get('count'))
+                    month_counts[m] = v
+        total = sum(month_counts.values())
+        if total <= 0:
+            _seasonal_cache[key] = 1.0
+            return 1.0
+        this = int(month_counts.get(month, 0))
+        if this <= 0:
+            _seasonal_cache[key] = 0.0
+            return 0.0
+        val = float(this) / float(total)
+        _seasonal_cache[key] = val
+        return val
+    except Exception:
+        return 1.0
 
 @app.get('/health')
 def health():
@@ -150,13 +256,16 @@ async def analyze(
                     })
                 if detecciones:
                     geo_list = gbif_species_near(lat, lon)
-                    geo_set = set(geo_list)
+                    eb_list = ebird_recent_species_near(lat, lon)
+                    geo_set = set(geo_list) | set(eb_list)
                     fused = []
                     for d in detecciones:
                         sci = d.get("nombre_cientifico")
                         ap = float(d.get("confianza", 0.0))
                         gp = 1.0 if (sci and sci in geo_set) else 0.0
-                        sp = seasonal_prior_for(sci, date)
+                        sp_base = seasonal_prior_for(sci, date, lat, lon)
+                        sp_boost = 0.5 if (sci and sci in set(eb_list)) else 0.0
+                        sp = max(sp_base, sp_boost)
                         fs = ap * gp * sp
                         if fs > 0.0:
                             fused.append({
@@ -189,12 +298,6 @@ async def analyze(
         if especie_birdnet_principal is not None and prob_birdnet_principal is not None:
             final_especie = especie_birdnet_principal
             final_prob = float(prob_birdnet_principal)
-        if final_especie is None:
-            arr = [] if (y is None or getattr(y, 'size', 0) == 0) else y
-            especie_fallback, prob_fallback, top3_fallback = clf.predict(arr, sr)
-            final_especie = especie_fallback
-            final_prob = float(prob_fallback)
-            top3 = top3_fallback
         return JSONResponse({
             "especie_predicha": final_especie,
             "probabilidad": float(final_prob),
@@ -216,6 +319,9 @@ async def analyze(
                     "lon": lon,
                     "date": date,
                     "min_confidence": float(min_confidence),
+                },
+                "ebird": {
+                    "token": bool(EB_TOKEN)
                 },
                 "segmentos": segs,
                 "fusion": "FinalScore=AcousticProbability×GeographicPrior×SeasonalPrior"
