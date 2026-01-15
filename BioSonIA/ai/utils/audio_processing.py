@@ -117,3 +117,53 @@ def waveform_clean_noisy_png_bytes(y: np.ndarray, sr: int):
     plt.close(fig)
     buf.seek(0)
     return buf.read()
+
+def bandpass_1_10k(y: np.ndarray, sr: int):
+    if y is None or y.size == 0 or sr <= 0:
+        return y
+    Y = np.fft.rfft(y.astype(np.float32))
+    freqs = np.fft.rfftfreq(y.size, d=1.0/float(sr))
+    mask = (freqs >= 1000.0) & (freqs <= 10000.0)
+    Y = Y * mask.astype(np.float32)
+    out = np.fft.irfft(Y, n=y.size).astype(np.float32)
+    return np.clip(out, -1.0, 1.0)
+
+def noise_reduce_simple(y: np.ndarray):
+    if y is None or y.size == 0:
+        return y
+    m = float(np.median(y))
+    s = float(np.std(y) + 1e-6)
+    thr = 0.5 * s
+    yc = y.astype(np.float32) - m
+    scale_low = 0.3
+    out = np.where(np.abs(yc) < thr, yc * scale_low, yc)
+    out = out + m
+    return np.clip(out.astype(np.float32), -1.0, 1.0)
+
+def segment_birdsong(y: np.ndarray, sr: int):
+    segs = []
+    if y is None or y.size == 0 or sr <= 0:
+        return segs
+    win = max(1, int(sr * 0.05))
+    step = max(1, int(sr * 0.02))
+    rms = []
+    for i in range(0, y.size - win + 1, step):
+        frame = y[i:i+win]
+        rms.append(float(np.sqrt(np.mean(frame**2))))
+    rms = np.array(rms, dtype=np.float32)
+    thr = float(np.median(rms) + 2.0 * np.std(rms))
+    active = rms > thr
+    start = None
+    for idx, a in enumerate(active):
+        if a and start is None:
+            start = idx
+        elif (not a) and start is not None:
+            s = start * step
+            e = (idx * step) + win
+            segs.append((float(s)/sr, float(e)/sr))
+            start = None
+    if start is not None:
+        s = start * step
+        e = ((len(active)) * step) + win
+        segs.append((float(s)/sr, float(e)/sr))
+    return segs
