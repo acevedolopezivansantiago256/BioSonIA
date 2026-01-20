@@ -7,7 +7,7 @@ try:
 except Exception:
     librosa = None
 
-def load_audio_mono_16k(buf: io.BytesIO):
+def load_audio_mono_16k(buf: io.BytesIO, mime: str = None, filename: str = None):
     buf.seek(0)
     if librosa is not None:
         try:

@@ -35,6 +35,43 @@ _ebird_tax_code_to_sci: dict = {}
 _ebird_tax_loaded = False
 _ebird_recent_cache: dict = {}
 
+try:
+    from ai.utils.audio_processing import load_audio_mono_16k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes, bandpass_1_10k, noise_reduce_simple, segment_birdsong
+except Exception:
+    try:
+        from utils.audio_processing import load_audio_mono_16k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes, bandpass_1_10k, noise_reduce_simple, segment_birdsong
+    except Exception:
+        try:
+            import importlib.util, sys as _sys, os as _os
+            _utils_path = _os.path.join(_os.path.dirname(__file__), "utils", "audio_processing.py")
+            _spec = importlib.util.spec_from_file_location("biosonia_audio_processing", _utils_path)
+            if _spec and _spec.loader:
+                _mod = importlib.util.module_from_spec(_spec)
+                _spec.loader.exec_module(_mod)  # type: ignore
+                load_audio_mono_16k = getattr(_mod, "load_audio_mono_16k", None)  # type: ignore
+                mel_spectrogram = getattr(_mod, "mel_spectrogram", None)  # type: ignore
+                spectrogram_png_bytes = getattr(_mod, "spectrogram_png_bytes", None)  # type: ignore
+                waveform_clean_noisy_png_bytes = getattr(_mod, "waveform_clean_noisy_png_bytes", None)  # type: ignore
+                bandpass_1_10k = getattr(_mod, "bandpass_1_10k", None)  # type: ignore
+                noise_reduce_simple = getattr(_mod, "noise_reduce_simple", None)  # type: ignore
+                segment_birdsong = getattr(_mod, "segment_birdsong", None)  # type: ignore
+            else:
+                load_audio_mono_16k = None  # type: ignore
+                mel_spectrogram = None  # type: ignore
+                spectrogram_png_bytes = None  # type: ignore
+                waveform_clean_noisy_png_bytes = None  # type: ignore
+                bandpass_1_10k = None  # type: ignore
+                noise_reduce_simple = None  # type: ignore
+                segment_birdsong = None  # type: ignore
+        except Exception:
+            load_audio_mono_16k = None  # type: ignore
+            mel_spectrogram = None  # type: ignore
+            spectrogram_png_bytes = None  # type: ignore
+            waveform_clean_noisy_png_bytes = None  # type: ignore
+            bandpass_1_10k = None  # type: ignore
+            noise_reduce_simple = None  # type: ignore
+            segment_birdsong = None  # type: ignore
+
 def _radius_for_context(area_context: Optional[str]) -> float:
     s = str(area_context or "").lower().strip()
     if s in ("rural", "natural", "naturales"):
@@ -196,17 +233,16 @@ async def analyze(
         sr = 16000
         b64 = None
         b64_birdnet = None
-        # Importación perezosa de utilidades de audio, con fallback si no están disponibles
+        # Importación/fallback de utilidades de audio
         try:
-            from ai.utils.audio_processing import load_audio_mono_16k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes, bandpass_1_10k, noise_reduce_simple, segment_birdsong
+            if load_audio_mono_16k is None or mel_spectrogram is None or spectrogram_png_bytes is None or waveform_clean_noisy_png_bytes is None or bandpass_1_10k is None or noise_reduce_simple is None or segment_birdsong is None:
+                raise Exception("audio utils not available")
             y, sr = load_audio_mono_16k(io.BytesIO(raw), mime=getattr(file, "content_type", None), filename=getattr(file, "filename", None))
             y = bandpass_1_10k(y, sr)
             y = noise_reduce_simple(y)
             S = mel_spectrogram(y, sr)
-            # Espectrograma estándar
             png_std = spectrogram_png_bytes(S, cmap='magma', title='Spectrogram')
             b64 = base64.b64encode(png_std).decode('ascii')
-            # Espectrograma estilo BirdNET (cmap viridis, sin colorbar)
             png_birdnet = spectrogram_png_bytes(S, cmap='viridis', title='BirdNET-style Spectrogram')
             b64_birdnet = base64.b64encode(png_birdnet).decode('ascii')
             png_wave = waveform_clean_noisy_png_bytes(y, sr)
