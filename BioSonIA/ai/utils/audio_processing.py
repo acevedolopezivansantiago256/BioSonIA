@@ -1,6 +1,10 @@
 import io
+import os
 import wave
+import tempfile
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 try:
     import librosa
@@ -11,7 +15,24 @@ def load_audio_mono_16k(buf: io.BytesIO, mime: str = None, filename: str = None)
     buf.seek(0)
     if librosa is not None:
         try:
-            data, sr = librosa.load(buf, sr=16000, mono=True)
+            raw = buf.read()
+            ext = ".wav"
+            m = (mime or "").lower()
+            fn = (filename or "").lower()
+            if ("mp3" in m) or ("mpeg" in m) or fn.endswith(".mp3"):
+                ext = ".mp3"
+            elif ("wav" in m) or fn.endswith(".wav"):
+                ext = ".wav"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                tmp.write(raw)
+                tmp_path = tmp.name
+            try:
+                data, sr = librosa.load(tmp_path, sr=16000, mono=True)
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
             return data.astype(np.float32), int(sr)
         except Exception:
             pass

@@ -33,8 +33,8 @@ export class AnalysisService {
           if (lon) form.append('lon', lon);
           if (date) form.append('date', date);
           form.append('min_confidence', minConf);
-          const headers = form.getHeaders();
-          return axios.post(`${AI_URL}/analyze`, form, { headers });
+          const headers = { ...form.getHeaders(), Expect: '' };
+          return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
         })();
         const result = {
           especie_predicha: res.data.especie_predicha,
@@ -101,8 +101,8 @@ export class AnalysisService {
         if (lon) form.append('lon', lon);
         if (date) form.append('date', date);
         form.append('min_confidence', minConf);
-        const headers = form.getHeaders();
-        return axios.post(`${AI_URL}/analyze`, form, { headers });
+        const headers = { ...form.getHeaders(), Expect: '' };
+        return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
       })();
       const ai = await client.aIResult.create({
         data: {
