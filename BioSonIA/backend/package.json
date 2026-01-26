@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn src/main.ts",
-    "dev:demo": "set DISABLE_DB=true&& set AI_SERVICE_URL=http://localhost:5001&& ts-node-dev --respawn src/main.ts",
+    "dev:demo": "set DISABLE_DB=true&& set AI_SERVICE_URL=http://127.0.0.1:5001&& ts-node-dev --respawn src/main.ts",
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.json",
     "test": "jest"

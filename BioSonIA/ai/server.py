@@ -224,7 +224,7 @@ async def analyze(
     lat: Optional[float] = Form(None),
     lon: Optional[float] = Form(None),
     date: Optional[str] = Form(None),  # YYYY-MM-DD
-    min_confidence: float = Form(0.6),
+    min_confidence: float = Form(0.3),
     area_context: Optional[str] = Form(None),
 ):
     try:

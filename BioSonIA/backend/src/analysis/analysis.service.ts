@@ -28,7 +28,7 @@ export class AnalysisService {
           const lat = process.env.AI_LAT;
           const lon = process.env.AI_LON;
           const date = process.env.AI_DATE;
-          const minConf = process.env.MIN_CONFIDENCE || '0.6';
+          const minConf = process.env.MIN_CONFIDENCE || '0.3';
           if (lat) form.append('lat', lat);
           if (lon) form.append('lon', lon);
           if (date) form.append('date', date);
@@ -54,6 +54,7 @@ export class AnalysisService {
           createdAt: new Date(),
         });
       } catch (e) {
+        console.error('AI Service Error:', e);
         // Fallback: si la IA no está disponible, genera un resultado de ejemplo
         const mock = {
           especie_predicha: 'Ave desconocida',
@@ -96,7 +97,7 @@ export class AnalysisService {
         const lat = process.env.AI_LAT;
         const lon = process.env.AI_LON;
         const date = process.env.AI_DATE;
-        const minConf = process.env.MIN_CONFIDENCE || '0.6';
+        const minConf = process.env.MIN_CONFIDENCE || '0.3';
         if (lat) form.append('lat', lat);
         if (lon) form.append('lon', lon);
         if (date) form.append('date', date);
