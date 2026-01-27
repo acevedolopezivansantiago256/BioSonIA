@@ -36,16 +36,11 @@ export class AnalysisService {
           const headers = { ...form.getHeaders(), Expect: '' };
           return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
         })();
-        const result = {
-          especie_predicha: res.data.especie_predicha,
-          probabilidad: res.data.probabilidad,
-          top3: res.data.top3,
-          espectrograma_base64: res.data.espectrograma_base64 || null,
-          espectrograma_birdnet_base64: res.data.espectrograma_birdnet_base64 || null,
-          waveform_pair_base64: res.data.waveform_pair_base64 || null,
-          detecciones: res.data.detecciones || [],
-          metadatos: res.data.metadatos || {}
-        };
+        const d = res?.data || {};
+        const result =
+          d?.detected === false
+            ? { detected: false, message: d?.message || 'No se detectaron aves con suficiente confianza' }
+            : { detected: true, top3: Array.isArray(d?.top3) ? d.top3 : [], metadata: d?.metadata || {} };
         memoryStore.analyses.set(id, {
           id,
           filename: filePath,
@@ -55,23 +50,11 @@ export class AnalysisService {
         });
       } catch (e) {
         console.error('AI Service Error:', e);
-        // Fallback: si la IA no está disponible, genera un resultado de ejemplo
-        const mock = {
-          especie_predicha: 'Ave desconocida',
-          probabilidad: 0.42,
-          top3: [
-            { especie: 'Ave A', probabilidad: 0.42 },
-            { especie: 'Ave B', probabilidad: 0.33 },
-            { especie: 'Ave C', probabilidad: 0.25 }
-          ],
-          espectrograma_base64: null,
-          metadatos: { fuente: 'mock', motivo: 'AI no disponible' }
-        };
         memoryStore.analyses.set(id, {
           id,
           filename: filePath,
           status: 'completed',
-          result: mock,
+          result: { detected: false, message: 'No se detectaron aves con suficiente confianza' },
           createdAt: new Date(),
         });
       }
@@ -105,14 +88,24 @@ export class AnalysisService {
         const headers = { ...form.getHeaders(), Expect: '' };
         return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
       })();
+      const d = res?.data || {};
+      const top3 = Array.isArray(d?.top3) ? d.top3 : [];
+      const top1 = top3?.[0] || null;
+      const especie = typeof top1?.species === 'string' ? top1.species : 'Sin detección';
+      const probabilidad = typeof top1?.confidence === 'number' ? top1.confidence : 0;
+      const metadata = d?.metadata || {};
+      const metadataToStore =
+        d?.detected === false
+          ? { ...metadata, detected: false, message: d?.message || 'No se detectaron aves con suficiente confianza' }
+          : { ...metadata, detected: true };
       const ai = await client.aIResult.create({
         data: {
-          especie: res.data.especie_predicha,
-          probabilidad: res.data.probabilidad,
-          top3Json: JSON.stringify(res.data.top3),
-          espectrogramaBase64: res.data.espectrograma_base64 || null,
-          metadataJson: JSON.stringify(res.data.metadatos || {}),
-          detectionsJson: JSON.stringify(res.data.detecciones || [])
+          especie,
+          probabilidad,
+          top3Json: JSON.stringify(top3),
+          espectrogramaBase64: d?.espectrograma_base64 || null,
+          metadataJson: JSON.stringify(metadataToStore),
+          detectionsJson: JSON.stringify(d?.detections || d?.detecciones || [])
         }
       });
       await client.analysis.update({ where: { id: analysis.id }, data: { status: 'done', aiResultId: ai.id } });

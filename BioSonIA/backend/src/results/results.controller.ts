@@ -4,6 +4,24 @@ import { memoryStore, AnalysisRecord } from '../shared/inmemory.store';
 
 let prisma: PrismaClient | null = null;
 
+const normalizeTop3 = (raw: any): Array<{ species: string; confidence: number }> => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((t) => {
+      if (t && typeof t === 'object') {
+        if (typeof t.species === 'string' && typeof t.confidence === 'number') {
+          return { species: t.species, confidence: t.confidence };
+        }
+        if (typeof t.especie === 'string') {
+          const p = typeof t.probabilidad === 'number' ? t.probabilidad : typeof t.prob === 'number' ? t.prob : 0;
+          return { species: t.especie, confidence: p };
+        }
+      }
+      return null;
+    })
+    .filter((x): x is { species: string; confidence: number } => Boolean(x));
+};
+
 @Controller()
 export class ResultsController {
   @Get('results/:id')
@@ -20,14 +38,13 @@ export class ResultsController {
     });
     if (!analysis || !analysis.aiResult) return {};
     const r = analysis.aiResult;
-    return {
-      especie_predicha: r.especie,
-      probabilidad: r.probabilidad,
-      top3: JSON.parse(r.top3Json || '[]'),
-      espectrograma_base64: r.espectrogramaBase64,
-      detecciones: JSON.parse((r as any).detectionsJson || '[]'),
-      metadatos: JSON.parse(r.metadataJson || '{}')
-    };
+    const top3 = normalizeTop3(JSON.parse(r.top3Json || '[]'));
+    const metadata = JSON.parse(r.metadataJson || '{}');
+    const detected = metadata?.detected === false ? false : top3.length > 0;
+    if (!detected) {
+      return { detected: false, message: metadata?.message || 'No se detectaron aves con suficiente confianza' };
+    }
+    return { detected: true, top3, metadata };
   }
 
   @Get('history')

@@ -3,6 +3,21 @@ import React, { useEffect, useState } from 'react';
 import { api } from "../../lib/api";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 
+const getTop1 = (h: any): { species: string; confidence: number } => {
+  if (h?.aiResult?.especie) {
+    return { species: h.aiResult.especie, confidence: typeof h.aiResult.probabilidad === 'number' ? h.aiResult.probabilidad : 0 };
+  }
+  const r = h?.result;
+  if (r?.detected === true && Array.isArray(r?.top3) && r.top3.length > 0) {
+    const t = r.top3[0] || {};
+    const species = typeof t.species === 'string' ? t.species : typeof t.especie === 'string' ? t.especie : '—';
+    const confidence =
+      typeof t.confidence === 'number' ? t.confidence : typeof t.probabilidad === 'number' ? t.probabilidad : typeof t.prob === 'number' ? t.prob : 0;
+    return { species, confidence };
+  }
+  return { species: '—', confidence: 0 };
+};
+
 export default function DashboardPage() {
   const [history, setHistory] = useState<any[]>([]);
 
@@ -12,20 +27,21 @@ export default function DashboardPage() {
 
   const chartData = history.map((h, idx) => ({
     name: `#${idx+1}`,
-    confidence: h?.aiResult?.probabilidad || Math.random()
+    confidence: getTop1(h).confidence
   }));
 
   const totalAudios = history.length;
   const latest = history[0];
-  const latestSpecies = latest?.aiResult?.especie ?? latest?.result?.especie_predicha ?? '—';
-  const latestPrecision = ((latest?.aiResult?.probabilidad ?? latest?.result?.probabilidad ?? 0) * 100);
+  const latestTop1 = getTop1(latest);
+  const latestSpecies = latestTop1.species;
+  const latestPrecision = (latestTop1.confidence * 100);
 
   const precisionSeries = history.map((h, idx) => ({
     name: (() => {
       const d = new Date(h?.createdAt ?? Date.now());
       return d.toLocaleDateString('es-ES');
     })(),
-    precision: ((h?.aiResult?.probabilidad ?? h?.result?.probabilidad ?? 0) * 100)
+    precision: (getTop1(h).confidence * 100)
   }));
 
   const groups: Record<string, number> = {};
