@@ -103,7 +103,9 @@ export class AnalysisService {
           especie,
           probabilidad,
           top3Json: JSON.stringify(top3),
-          espectrogramaBase64: d?.espectrograma_base64 || null,
+          espectrogramaBase64: d?.spectrograma_base64 || d?.espectrograma_base64 || null,
+          espectrogramaBirdnetBase64: d?.espectrograma_birdnet_base64 || null,
+          waveformPairBase64: d?.waveform_pair_base64 || null,
           metadataJson: JSON.stringify(metadataToStore),
           detectionsJson: JSON.stringify(d?.detections || d?.detecciones || [])
         }

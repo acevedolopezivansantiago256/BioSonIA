@@ -33,7 +33,9 @@ model AIResult {
   especie             String
   probabilidad        Float
   top3Json            String?
-  espectrogramaBase64 String?
+  espectrogramaBase64        String?
+  espectrogramaBirdnetBase64 String?
+  waveformPairBase64         String?
   metadataJson        String?
   detectionsJson      String?
   analysis            Analysis?

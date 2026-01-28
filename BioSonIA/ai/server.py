@@ -13,7 +13,10 @@ try:
     from birdnetlib.analyzer import Analyzer
     from birdnetlib import Recording
     BN_AVAILABLE = True
-except Exception:
+except Exception as e:
+    print(f"Error loading BirdNET: {e}")
+    import traceback
+    traceback.print_exc()
     Analyzer = None  # type: ignore
     Recording = None  # type: ignore
     BN_AVAILABLE = False
@@ -59,6 +62,10 @@ def _write_wav_48k_mono_int16(y: np.ndarray, sr: int):
     w.writeframes(pcm16.tobytes())
     w.close()
     return tmp_path
+
+@app.get('/')
+def read_root():
+    return {"message": "BioSonIA AI Service is running. Use /analyze for analysis."}
 
 @app.get('/health')
 def health():
@@ -111,8 +118,8 @@ async def analyze(
                 tmp_path,
                 lat=lat_used,
                 lon=lon_used,
-                date=date_used,
-                min_confidence=threshold,
+                date=datetime.strptime(date_used, "%Y-%m-%d"),
+                min_conf=threshold,
             )
             recording.analyze()
 
@@ -190,6 +197,8 @@ async def analyze(
                 except Exception:
                     pass
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
 if __name__ == '__main__':

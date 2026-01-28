@@ -44,7 +44,14 @@ export class ResultsController {
     if (!detected) {
       return { detected: false, message: metadata?.message || 'No se detectaron aves con suficiente confianza' };
     }
-    return { detected: true, top3, metadata };
+    return {
+      detected: true,
+      top3,
+      metadata,
+      espectrograma_base64: r.espectrogramaBase64,
+      espectrograma_birdnet_base64: r.espectrogramaBirdnetBase64,
+      waveform_pair_base64: r.waveformPairBase64
+    };
   }
 
   @Get('history')
