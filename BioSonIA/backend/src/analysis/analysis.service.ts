@@ -39,8 +39,21 @@ export class AnalysisService {
         const d = res?.data || {};
         const result =
           d?.detected === false
-            ? { detected: false, message: d?.message || 'No se detectaron aves con suficiente confianza' }
-            : { detected: true, top3: Array.isArray(d?.top3) ? d.top3 : [], metadata: d?.metadata || {} };
+            ? {
+                detected: false,
+                message: d?.message || 'No se detectaron aves con suficiente confianza',
+                espectrograma_base64: d?.espectrograma_base64,
+                espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
+                waveform_pair_base64: d?.waveform_pair_base64,
+              }
+            : {
+                detected: true,
+                top3: Array.isArray(d?.top3) ? d.top3 : [],
+                metadata: d?.metadata || {},
+                espectrograma_base64: d?.espectrograma_base64,
+                espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
+                waveform_pair_base64: d?.waveform_pair_base64,
+              };
         memoryStore.analyses.set(id, {
           id,
           filename: filePath,

@@ -92,28 +92,25 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
     <div className="bg-background-light dark:bg-background-dark transition-colors duration-300 min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary items-center justify-center p-12">
         <img 
-          alt="Beautiful bird in nature" 
+          alt="Hermosa ave en la naturaleza" 
           className="absolute inset-0 object-cover w-full h-full opacity-60 mix-blend-multiply" 
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuOJHyUHMD96FCperERUl93M59YtzUnoWSCtHFSZiw1xOS4uY8GsJ1sK9J1nRlIe1ks1LHDr2_0EpfjRG0nj4aIauYKq8n2mNwnaoCpCBiWXN3WtxTZObcGDieiSaWtRA8p2hEUHFMQhQw7xKk82B3TkOjvSum9WrJKTJ7ehvnck2wPWlI9TQQeu8L4wwLvGoSJWlftwIx_kPTK-9eapsZaCGlYNlQuTbLgZirFxzBeMEiAHZ8Nx79pzmq8KiAHi0dKqTEJ_OGsEo" 
         />
         <div className="relative z-10 max-w-lg text-white">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-              <span className="material-symbols-rounded text-primary text-3xl">waves</span>
-            </div>
-            <span className="text-3xl font-bold tracking-tight">BioSonIA</span>
+            <img src="/logo.png" alt="BioSonIA" className="h-32 w-auto bg-white/20 p-2 rounded-xl backdrop-blur-sm" />
           </div>
-          <h1 className="text-5xl font-bold mb-6 leading-tight">Identify Nature's Voice with AI.</h1>
+          <h1 className="text-5xl font-bold mb-6 leading-tight">Identifica la Voz de la Naturaleza con IA.</h1>
           <p className="text-xl text-emerald-50 mb-10 leading-relaxed">
-            Our advanced neural networks analyze avian vocalizations to help researchers and enthusiasts monitor biodiversity in real-time.
+            Nuestras redes neuronales avanzadas analizan las vocalizaciones de aves para ayudar a investigadores y entusiastas a monitorear la biodiversidad en tiempo real.
           </p>
           <div className="backdrop-blur-md bg-white/10 border border-white/20 p-6 rounded-2xl">
-            <p className="italic text-emerald-50 mb-4">"BioSonIA has revolutionized how we conduct field surveys, making species identification faster and more accurate than ever."</p>
+            <p className="italic text-emerald-50 mb-4">"BioSonIA ha revolucionado la forma en que realizamos estudios de campo, haciendo que la identificación de especies sea más rápida y precisa que nunca."</p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-emerald-400"></div>
               <div>
-                <p className="font-semibold text-sm">Dr. Elena Rodriguez</p>
-                <p className="text-xs text-emerald-200 uppercase tracking-wider">Ornithologist & Researcher</p>
+                <p className="font-semibold text-sm">Dra. Elena Rodriguez</p>
+                <p className="text-xs text-emerald-200 uppercase tracking-wider">Ornitóloga e Investigadora</p>
               </div>
             </div>
           </div>
@@ -136,10 +133,10 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
         <div className="w-full max-w-md">
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {isLogin ? 'Welcome back' : 'Create an account'}
+              {isLogin ? 'Bienvenido de nuevo' : 'Crear una cuenta'}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              {isLogin ? 'Please enter your details to sign in' : 'Join BioSonIA and start identifying bird songs'}
+              {isLogin ? 'Ingresa tus datos para iniciar sesión' : 'Únete a BioSonIA y comienza a identificar cantos de aves'}
             </p>
           </div>
 
@@ -156,7 +153,7 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
 
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-800"></div></div>
-            <div className="relative flex justify-center text-sm uppercase"><span className="px-2 bg-background-light dark:bg-background-dark text-gray-500 dark:text-gray-400">Or continue with</span></div>
+            <div className="relative flex justify-center text-sm uppercase"><span className="px-2 bg-background-light dark:bg-background-dark text-gray-500 dark:text-gray-400">O continúa con</span></div>
           </div>
 
           {error && (
@@ -168,12 +165,12 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
           {isLogin ? (
             <form onSubmit={onLogin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="email">Email address</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="email">Correo electrónico</label>
                 <input 
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" 
                   id="email" 
                   type="email" 
-                  placeholder="Enter your email" 
+                  placeholder="Ingresa tu correo" 
                   required 
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
@@ -181,8 +178,8 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">Password</label>
-                  <a className="text-sm font-medium text-primary hover:text-emerald-600 transition-colors" href="#">Forgot password?</a>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">Contraseña</label>
+                  <a className="text-sm font-medium text-primary hover:text-emerald-600 transition-colors" href="#">¿Olvidaste tu contraseña?</a>
                 </div>
                 <input 
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" 
@@ -196,49 +193,49 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
               </div>
               <div className="flex items-center">
                 <input className="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-gray-700 rounded dark:bg-gray-800" id="remember-me" type="checkbox"/>
-                <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300" htmlFor="remember-me">Remember for 30 days</label>
+                <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300" htmlFor="remember-me">Recordar por 30 días</label>
               </div>
               <button 
                 disabled={loading}
                 className={`w-full py-3 px-4 bg-primary hover:bg-emerald-600 text-white font-semibold rounded-lg shadow-lg shadow-emerald-200 dark:shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${loading ? 'opacity-70 cursor-wait' : ''}`} 
                 type="submit"
               >
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading ? 'Iniciando...' : 'Iniciar Sesión'}
               </button>
             </form>
           ) : (
             <form onSubmit={onRegister} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="reg-name">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="reg-name">Nombre completo</label>
                 <input 
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none" 
                   id="reg-name" 
                   type="text" 
-                  placeholder="Jane Doe" 
+                  placeholder="Juan Pérez" 
                   required 
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="reg-email">Email address</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="reg-email">Correo electrónico</label>
                 <input 
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none" 
                   id="reg-email" 
                   type="email" 
-                  placeholder="jane@example.com" 
+                  placeholder="juan@ejemplo.com" 
                   required 
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="reg-password">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="reg-password">Contraseña</label>
                 <input 
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none" 
                   id="reg-password" 
                   type="password" 
-                  placeholder="Min. 8 characters" 
+                  placeholder="Mín. 8 caracteres" 
                   required 
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
@@ -249,25 +246,25 @@ export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'log
                 className={`w-full py-3 px-4 bg-primary hover:bg-emerald-600 text-white font-semibold rounded-lg shadow-lg shadow-emerald-200 dark:shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${loading ? 'opacity-70 cursor-wait' : ''}`} 
                 type="submit"
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? 'Creando Cuenta...' : 'Crear Cuenta'}
               </button>
             </form>
           )}
 
           <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-            <span>{isLogin ? "Don't have an account?" : "Already have an account?"}</span>
+            <span>{isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}</span>
             <button 
               className="ml-1 font-semibold text-primary hover:text-emerald-600 transition-colors focus:outline-none" 
               onClick={toggleAuthMode}
             >
-              {isLogin ? "Sign up for free" : "Log in"}
+              {isLogin ? "Regístrate gratis" : "Iniciar sesión"}
             </button>
           </p>
 
           <div className="mt-12 flex justify-center gap-6 text-xs text-gray-500 dark:text-gray-500">
-            <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-            <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
-            <a className="hover:text-primary transition-colors" href="#">Contact Support</a>
+            <a className="hover:text-primary transition-colors" href="#">Política de Privacidad</a>
+            <a className="hover:text-primary transition-colors" href="#">Términos de Servicio</a>
+            <a className="hover:text-primary transition-colors" href="#">Contactar Soporte</a>
           </div>
         </div>
 

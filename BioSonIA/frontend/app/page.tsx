@@ -37,12 +37,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-xl shadow-lg shadow-primary/20">
-                <span className="material-symbols-rounded text-white">eco</span>
-              </div>
-              <span className="text-2xl font-extrabold font-display bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                BioSonIA
-              </span>
+               <img src="/logo.png" alt="BioSonIA" className="h-40 w-auto object-contain" />
             </div>
             <div className="hidden md:flex items-center space-x-8 font-medium">
               <a className="hover:text-primary transition-colors" href="/">
@@ -131,9 +126,9 @@ export default function HomePage() {
             <div className="relative center-content">
               <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white dark:border-slate-800">
                 <img
-                  alt="Hermosa ave en la naturaleza"
+                  alt="Guacamayo Rojo en vuelo"
                   className="w-full aspect-[4/5] object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUq1pwyFH4Y3c2soHFOz53agFxi3uR_hFNufHlruB1tnDtCiiAtmmb_LpelxIS6ULisrACisefIk8oMQuXFVNCEWE2b4J2IyOJyTCy8zGaqXxmSaJLZ0x6hpkEd6txrE6X9_Zn38g2i9JyxR1k2Ai6S9Ytg3tQltQj1bFHvtj90qTIAqpraw8_SFdODFH6zw-J4WVaAv5gh1332ld29TpR0fFU6Z-nEUEB_sv_0xiqlxhLi_KqMGDR_fvXAA5_qwnnDqrSAnTpC1Y"
+                  src="https://images.unsplash.com/photo-1452570053594-1b985d6ea890?q=80&w=2000&auto=format&fit=crop"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 <div className="absolute bottom-6 left-6 right-6 backdrop-blur-md bg-white/10 p-5 rounded-2xl border border-white/20 shadow-2xl">
@@ -143,7 +138,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="text-white/70 text-xs font-medium uppercase tracking-wider">Último Análisis</p>
-                      <p className="text-white font-bold text-lg">Ramphastos vitellinus</p>
+                      <p className="text-white font-bold text-lg">Ara macao</p>
                     </div>
                     <div className="ml-auto bg-primary text-white text-sm font-bold px-3 py-1 rounded-lg">
                       86.5%

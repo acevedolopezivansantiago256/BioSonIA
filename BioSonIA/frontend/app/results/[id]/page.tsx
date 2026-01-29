@@ -140,11 +140,8 @@ export default function ResultsPage() {
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 shadow-sm print:hidden">
         <div className="max-w-[1440px] mx-auto px-6 h-16 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary flex items-center justify-center rounded-xl shadow-lg shadow-primary/30">
-              <span className="material-symbols-rounded text-white text-[22px] font-bold">graphic_eq</span>
-            </div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">BioSonIA<span className="text-primary">.</span></span>
-          </div>
+             <img src="/logo.png" alt="BioSonIA" className="h-16 w-auto object-contain" />
+           </div>
           <div className="hidden md:flex items-center space-x-1">
              <a href="/upload" className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Start New Analysis</a>
              <a href="/dashboard" className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Dashboard</a>
