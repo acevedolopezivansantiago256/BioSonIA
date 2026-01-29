@@ -72,10 +72,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-lg shadow-lg shadow-primary/20">
-                <span className="material-symbols-rounded text-white">waves</span>
-              </div>
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">BioSonIA</span>
+              <img src="/logo.png" alt="BioSonIA" className="h-32 w-auto object-contain" />
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a className="text-sm font-medium hover:text-primary transition-colors" href="/">Inicio</a>

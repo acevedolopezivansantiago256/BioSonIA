@@ -38,7 +38,7 @@ export default function RegisterPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Registration failed. Please try again.');
+        throw new Error('El registro falló. Por favor intenta de nuevo.');
       }
 
       // 2. Login automatically
@@ -60,7 +60,7 @@ export default function RegisterPage() {
       }
 
     } catch (err: any) {
-      setError(err.message || 'Error creating account');
+      setError(err.message || 'Error al crear la cuenta');
     } finally {
       setLoading(false);
     }
@@ -76,28 +76,25 @@ export default function RegisterPage() {
         {/* Left Side - Image */}
         <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary items-center justify-center p-12">
           <img 
-            alt="Beautiful bird in nature" 
+            alt="Hermosa ave en la naturaleza" 
             className="absolute inset-0 object-cover w-full h-full opacity-60 mix-blend-multiply" 
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuOJHyUHMD96FCperERUl93M59YtzUnoWSCtHFSZiw1xOS4uY8GsJ1sK9J1nRlIe1ks1LHDr2_0EpfjRG0nj4aIauYKq8n2mNwnaoCpCBiWXN3WtxTZObcGDieiSaWtRA8p2hEUHFMQhQw7xKk82B3TkOjvSum9WrJKTJ7ehvnck2wPWlI9TQQeu8L4wwLvGoSJWlftwIx_kPTK-9eapsZaCGlYNlQuTbLgZirFxzBeMEiAHZ8Nx79pzmq8KiAHi0dKqTEJ_OGsEo"
           />
           <div className="relative z-10 max-w-lg text-white">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                <span className="material-symbols-rounded text-primary text-3xl">waves</span>
-              </div>
-              <span className="text-3xl font-bold tracking-tight">BioSonIA</span>
-            </div>
-            <h1 className="text-5xl font-bold mb-6 leading-tight">Identify Nature's Voice with AI.</h1>
+            <img src="/logo.png" alt="BioSonIA" className="h-32 w-auto bg-white/20 p-2 rounded-xl backdrop-blur-sm" />
+          </div>
+            <h1 className="text-5xl font-bold mb-6 leading-tight">Identifica la Voz de la Naturaleza con IA.</h1>
             <p className="text-xl text-emerald-50 mb-10 leading-relaxed">
-              Our advanced neural networks analyze avian vocalizations to help researchers and enthusiasts monitor biodiversity in real-time.
+              Nuestras redes neuronales avanzadas analizan las vocalizaciones de aves para ayudar a investigadores y entusiastas a monitorear la biodiversidad en tiempo real.
             </p>
             <div className="backdrop-blur-md bg-white/10 p-6 rounded-2xl border border-white/20">
-              <p className="italic text-emerald-50 mb-4">"BioSonIA has revolutionized how we conduct field surveys, making species identification faster and more accurate than ever."</p>
+              <p className="italic text-emerald-50 mb-4">"BioSonIA ha revolucionado la forma en que realizamos estudios de campo, haciendo que la identificación de especies sea más rápida y precisa que nunca."</p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-400"></div>
                 <div>
-                  <p className="font-semibold text-sm">Dr. Elena Rodriguez</p>
-                  <p className="text-xs text-emerald-200 uppercase tracking-wider">Ornithologist & Researcher</p>
+                  <p className="font-semibold text-sm">Dra. Elena Rodriguez</p>
+                  <p className="text-xs text-emerald-200 uppercase tracking-wider">Ornitóloga e Investigadora</p>
                 </div>
               </div>
             </div>
@@ -120,8 +117,8 @@ export default function RegisterPage() {
 
           <div className="w-full max-w-md">
             <div className="mb-10 text-center lg:text-left">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create an account</h2>
-              <p className="text-gray-600 dark:text-gray-400">Join our community of bird enthusiasts</p>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Crear una cuenta</h2>
+              <p className="text-gray-600 dark:text-gray-400">Únete a nuestra comunidad de entusiastas de las aves</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
@@ -140,80 +137,77 @@ export default function RegisterPage() {
                 <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
               </div>
               <div className="relative flex justify-center text-sm uppercase">
-                <span className="px-2 bg-white dark:bg-background-dark text-gray-500 dark:text-gray-400">Or continue with email</span>
+                <span className="px-2 bg-white dark:bg-background-dark text-gray-500 dark:text-gray-400">O continúa con correo</span>
               </div>
             </div>
 
             <form onSubmit={handleRegister} className="space-y-4">
               {error && <div className="p-3 bg-red-50 text-red-500 text-sm rounded-lg">{error}</div>}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="name">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="name">Nombre completo</label>
                 <input 
                   id="name" 
                   name="name" 
                   type="text" 
                   required 
-                  placeholder="Enter your full name"
+                  placeholder="Ingresa tu nombre completo"
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
                   value={formData.name}
                   onChange={handleChange}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="email">Email address</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="email">Correo electrónico</label>
                 <input 
                   id="email" 
                   name="email" 
                   type="email" 
                   required 
-                  placeholder="Enter your email" 
+                  placeholder="Ingresa tu correo" 
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
                   value={formData.email}
                   onChange={handleChange}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="password">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="password">Contraseña</label>
                 <input 
                   id="password" 
                   name="password" 
                   type="password" 
                   required 
-                  placeholder="••••••••" 
+                  placeholder="Crea una contraseña"
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
                   value={formData.password}
                   onChange={handleChange}
                 />
               </div>
+
+              <div className="flex items-center gap-2">
+                <input 
+                  id="terms" 
+                  type="checkbox" 
+                  required
+                  className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-600 dark:text-gray-400">
+                  Acepto los <a href="#" className="text-primary hover:underline">Términos</a> y <a href="#" className="text-primary hover:underline">Política de Privacidad</a>
+                </label>
+              </div>
+
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-3 px-4 bg-primary hover:bg-emerald-600 text-white font-semibold rounded-lg shadow-lg shadow-emerald-200 dark:shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full bg-primary hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                 {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
               </button>
             </form>
 
-            <p className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-              Already have an account? 
-              <Link href="/auth/login" className="ml-1 font-semibold text-primary hover:text-emerald-600 transition-colors">
-                Log in
-              </Link>
-            </p>
-
-            <div className="mt-12 flex justify-center gap-6 text-xs text-gray-500 dark:text-gray-500">
-              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+              ¿Ya tienes una cuenta? <Link href="/auth/login" className="text-primary font-bold hover:underline">Inicia Sesión</Link>
             </div>
           </div>
-
-          <button 
-            className="lg:hidden absolute top-8 right-8 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm"
-            onClick={toggleDarkMode}
-          >
-            <span className="material-symbols-rounded dark:hidden">dark_mode</span>
-            <span className="material-symbols-rounded hidden dark:block">light_mode</span>
-          </button>
         </div>
       </div>
     </div>
