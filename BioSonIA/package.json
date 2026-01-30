@@ -13,7 +13,7 @@
     "build": "echo 'Use workspace build scripts'",
     "front": "npm run -w frontend dev",
     "front:p3010": "npm run -w frontend dev:p3010",
-    "back": "npm run -w backend dev:demo",
+    "back": "set PORT=5000&& npm run -w backend dev:demo",
     "py:setup": "cd ai && python -m venv .venv && .venv\\Scripts\\activate && pip install -r requirements.txt",
     "py": "cd ai && python server.py",
     "py:venv": "cd ai && .venv\\Scripts\\activate && python server.py"
