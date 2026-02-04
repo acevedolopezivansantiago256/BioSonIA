@@ -5,8 +5,24 @@ import React, { useEffect, useState } from 'react';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const HERO_IMAGES = [
+  '/guacamayas.jpg',
+  '/colibri.jpg',
+  '/ave1.jpg',
+  '/loro volando.jpg',
+  '/hermoso-tucan-en-las-selvas-de-colombia-aves-toucan-colors-g.jpg'
+];
+
 export default function HomePage() {
   const [isDark, setIsDark] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     // Check local storage or preference on mount
@@ -37,7 +53,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <div className="flex items-center gap-3">
-               <img src="/logo.png" alt="BioSonIA" className="h-40 w-auto object-contain" />
+              <img src="/logo.png" alt="BioSonIA" className="h-40 w-auto object-contain" />
             </div>
             <div className="hidden md:flex items-center space-x-8 font-medium">
               <a className="hover:text-primary transition-colors" href="/">
@@ -79,12 +95,12 @@ export default function HomePage() {
       </nav>
 
       <main className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        <div className="absolute inset-0 hero-pattern -z-10" 
-             style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(34, 197, 94, 0.05) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+        <div className="absolute inset-0 hero-pattern -z-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(34, 197, 94, 0.05) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
         </div>
         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl -z-10"></div>
         <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-secondary/10 rounded-full blur-3xl -z-10"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
@@ -122,14 +138,18 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="relative center-content">
-              <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white dark:border-slate-800">
-                <img
-                  alt="Guacamayo Rojo en vuelo"
-                  className="w-full aspect-[4/5] object-cover"
-                  src="https://images.unsplash.com/photo-1452570053594-1b985d6ea890?q=80&w=2000&auto=format&fit=crop"
-                />
+              <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white dark:border-slate-800 aspect-[4/5]">
+                {HERO_IMAGES.map((src, index) => (
+                  <img
+                    key={src}
+                    alt={`Biodiversidad ${index + 1}`}
+                    src={src}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                      }`}
+                  />
+                ))}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 <div className="absolute bottom-6 left-6 right-6 backdrop-blur-md bg-white/10 p-5 rounded-2xl border border-white/20 shadow-2xl">
                   <div className="flex items-center gap-4">

@@ -7,7 +7,7 @@ from typing import Optional, Any
 
 import numpy as np
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 
 try:
     from birdnetlib.analyzer import Analyzer
@@ -20,6 +20,18 @@ except Exception as e:
     Analyzer = None  # type: ignore
     Recording = None  # type: ignore
     BN_AVAILABLE = False
+ 
+import logging
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("ai_debug.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("BioSonIA-AI")
 
 app = FastAPI(title="BioSonIA AI Service (BirdNET)")
 
@@ -63,9 +75,22 @@ def _write_wav_48k_mono_int16(y: np.ndarray, sr: int):
     w.close()
     return tmp_path
 
-@app.get('/')
+@app.get('/', response_class=HTMLResponse)
 def read_root():
-    return {"message": "BioSonIA AI Service is running. Use /analyze for analysis."}
+    return """
+    <html>
+        <head>
+            <title>BioSonIA AI Service</title>
+            <style>body{font-family:sans-serif;text-align:center;padding:50px;background:#f0f9ff;color:#334155;}</style>
+        </head>
+        <body>
+            <h1>🦜 BioSonIA AI Service Working!</h1>
+            <p>Este es el servicio de Inteligencia Artificial (Backend).</p>
+            <p>No necesitas hacer nada aquí.</p>
+            <p><strong>Ve a <a href="http://localhost:3000">http://localhost:3000</a> para usar la aplicación.</strong></p>
+        </body>
+    </html>
+    """
 
 @app.get('/health')
 def health():
@@ -87,6 +112,10 @@ async def analyze(
         raw = await file.read()
         threshold = float(confidence_threshold) if confidence_threshold is not None else float(min_confidence)
         lat_used, lon_used, date_used = _defaults_for_colombia(lat, lon, date)
+        
+        logger.info(f"--- Nueva solicitud de análisis ---")
+        logger.info(f"Archivo: {getattr(file, 'filename', 'desconocido')} ({getattr(file, 'content_type', 'tipo desconocido')})")
+        logger.info(f"Parámetros: lat={lat_used}, lon={lon_used}, date={date_used}, threshold={threshold}")
 
         y, sr = load_audio_mono_48k(
             io.BytesIO(raw),
@@ -94,6 +123,7 @@ async def analyze(
             filename=getattr(file, "filename", None),
         )
         if y is None or getattr(y, "size", 0) == 0:
+            logger.warning("No se pudo leer el audio/Audio vacío")
             return JSONResponse(
                 {
                     "detected": False,
@@ -124,6 +154,9 @@ async def analyze(
             recording.analyze()
 
             raw_detections = getattr(recording, "detections", []) or []
+            logger.info(f"Detecciones brutas de BirdNET: {len(raw_detections)}")
+            for rd in raw_detections:
+                logger.debug(f"Det: {rd}")
 
             detections: list[dict[str, Any]] = []
             per_species: dict[str, float] = {}

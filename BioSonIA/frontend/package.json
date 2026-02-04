@@ -2,6 +2,7 @@
   "name": "biosonia-frontend",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [],
   "scripts": {
     "dev": "next dev -p 3000",
     "dev:local": "set NEXT_PUBLIC_BACKEND_URL=http://localhost:5000&& next dev -p 3000",
