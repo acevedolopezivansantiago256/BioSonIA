@@ -40,20 +40,20 @@ export class AnalysisService {
         const result =
           d?.detected === false
             ? {
-                detected: false,
-                message: d?.message || 'No se detectaron aves con suficiente confianza',
-                espectrograma_base64: d?.espectrograma_base64,
-                espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
-                waveform_pair_base64: d?.waveform_pair_base64,
-              }
+              detected: false,
+              message: d?.message || 'No se detectaron aves con suficiente confianza',
+              espectrograma_base64: d?.espectrograma_base64,
+              espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
+              waveform_pair_base64: d?.waveform_pair_base64,
+            }
             : {
-                detected: true,
-                top3: Array.isArray(d?.top3) ? d.top3 : [],
-                metadata: d?.metadata || {},
-                espectrograma_base64: d?.espectrograma_base64,
-                espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
-                waveform_pair_base64: d?.waveform_pair_base64,
-              };
+              detected: true,
+              top3: Array.isArray(d?.top3) ? d.top3 : [],
+              metadata: d?.metadata || {},
+              espectrograma_base64: d?.espectrograma_base64,
+              espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
+              waveform_pair_base64: d?.waveform_pair_base64,
+            };
         memoryStore.analyses.set(id, {
           id,
           filename: filePath,
@@ -61,13 +61,17 @@ export class AnalysisService {
           result,
           createdAt: new Date(),
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error('AI Service Error:', e);
+        const errorMsg = e.message || String(e);
         memoryStore.analyses.set(id, {
           id,
           filename: filePath,
           status: 'completed',
-          result: { detected: false, message: 'No se detectaron aves con suficiente confianza' },
+          result: {
+            detected: false,
+            message: `Error en el servicio de IA: ${errorMsg}. Asegúrate de que el servicio Python esté corriendo.`
+          },
           createdAt: new Date(),
         });
       }
@@ -124,7 +128,12 @@ export class AnalysisService {
         }
       });
       await client.analysis.update({ where: { id: analysis.id }, data: { status: 'done', aiResultId: ai.id } });
-    } catch (e) {
+    } catch (e: any) {
+      // In DB mode, we might want to store the error or mark as failed.
+      // For now, let's mark as failed but maybe update the logic to store a failed result if possible?
+      // The current logic marks status='failed', which results in Frontend showing "Error loading results".
+      // Let's print the error at least.
+      console.error('AI Service Error (DB):', e);
       await client.analysis.update({ where: { id: analysis.id }, data: { status: 'failed' } });
     }
     return analysis.id;
