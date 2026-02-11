@@ -8,10 +8,15 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors({ origin: '*', credentials: true });
+  app.enableCors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   app.use(json({ limit: '25mb' }));
   app.use(urlencoded({ extended: true }));
-  const port = Number(process.env.PORT) || 5001;
+  const port = Number(process.env.PORT) || 5000;
   await app.listen(port, '127.0.0.1');
   // Simple startup log for dev tracing
   // eslint-disable-next-line no-console
