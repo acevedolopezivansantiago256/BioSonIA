@@ -43,6 +43,27 @@ try:
 except Exception:
     from utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes  # type: ignore
 
+try:
+    from pydub.utils import which as _which
+    from pydub import AudioSegment as _AS
+    _ff = _which("ffmpeg")
+    if not _ff:
+        for _p in [
+            r"C:\ffmpeg\bin\ffmpeg.exe",
+            r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
+            r"C:\Program Files\Gyan\FFmpeg\bin\ffmpeg.exe",
+            r"C:\Program Files (x86)\FFmpeg\bin\ffmpeg.exe",
+        ]:
+            if os.path.exists(_p):
+                _ff = _p
+                break
+    if not _ff and os.environ.get("FFMPEG_BINARY"):
+        _ff = os.environ.get("FFMPEG_BINARY")
+    if _ff:
+        _AS.converter = _ff
+except Exception:
+    pass
+
 bn_analyzer: Optional[Analyzer] = None
 if BN_AVAILABLE:
     try:

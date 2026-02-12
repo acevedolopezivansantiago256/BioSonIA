@@ -31,27 +31,30 @@ export class ResultsController {
       if (!rec || !rec.result) return {};
       return rec.result;
     }
-    const client = prisma ?? (prisma = new PrismaClient());
-    const analysis = await client.analysis.findUnique({
-      where: { id },
-      include: { aiResult: true }
-    });
-    if (!analysis || !analysis.aiResult) return {};
-    const r = analysis.aiResult;
-    const top3 = normalizeTop3(JSON.parse(r.top3Json || '[]'));
-    const metadata = JSON.parse(r.metadataJson || '{}');
-    const detected = metadata?.detected === false ? false : top3.length > 0;
-    if (!detected) {
-      return { detected: false, message: metadata?.message || 'No se detectaron aves con suficiente confianza' };
+    try {
+      const client = prisma ?? (prisma = new PrismaClient());
+      const analysis = await client.analysis.findUnique({ where: { id }, include: { aiResult: true } });
+      if (!analysis || !analysis.aiResult) return {};
+      const r = analysis.aiResult;
+      const top3 = normalizeTop3(JSON.parse(r.top3Json || '[]'));
+      const metadata = JSON.parse(r.metadataJson || '{}');
+      const detected = metadata?.detected === false ? false : top3.length > 0;
+      if (!detected) {
+        return { detected: false, message: metadata?.message || 'No se detectaron aves con suficiente confianza' };
+      }
+      return {
+        detected: true,
+        top3,
+        metadata,
+        espectrograma_base64: r.espectrogramaBase64,
+        espectrograma_birdnet_base64: r.espectrogramaBirdnetBase64,
+        waveform_pair_base64: r.waveformPairBase64
+      };
+    } catch {
+      const rec = memoryStore.analyses.get(id);
+      if (!rec || !rec.result) return {};
+      return rec.result;
     }
-    return {
-      detected: true,
-      top3,
-      metadata,
-      espectrograma_base64: r.espectrogramaBase64,
-      espectrograma_birdnet_base64: r.espectrogramaBirdnetBase64,
-      waveform_pair_base64: r.waveformPairBase64
-    };
   }
 
   @Get('history')
@@ -60,8 +63,13 @@ export class ResultsController {
       const arr = Array.from(memoryStore.analyses.values()) as AnalysisRecord[];
       return arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
-    const client = prisma ?? (prisma = new PrismaClient());
-    const list = await client.analysis.findMany({ include: { aiResult: true }, orderBy: { createdAt: 'desc' } });
-    return list;
+    try {
+      const client = prisma ?? (prisma = new PrismaClient());
+      const list = await client.analysis.findMany({ include: { aiResult: true }, orderBy: { createdAt: 'desc' } });
+      return list;
+    } catch {
+      const arr = Array.from(memoryStore.analyses.values()) as AnalysisRecord[];
+      return arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
   }
 }

@@ -19,7 +19,6 @@ export const api = {
     const res = await axios.post(`${API_BASE}/upload`, form, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        'Content-Type': 'multipart/form-data'
       }
     });
     return res.data; // { analysisId }
