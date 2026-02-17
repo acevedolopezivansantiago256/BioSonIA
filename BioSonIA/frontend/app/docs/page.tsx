@@ -139,6 +139,79 @@ export default function DocsPage() {
           </div>
         </div>
       </Section>
+
+      <Section title="Propuesta de Investigación (SENA)">
+        <div className="space-y-4">
+          <div>
+            <strong>Título:</strong> Sistema de reconocimiento de especies de aves mediante análisis de audio y visualización asistida por IA en entorno web
+          </div>
+          <div>
+            <strong>Introducción:</strong> La bioacústica permite monitorear biodiversidad a partir de cantos. Se integra un frontend (Next.js), un backend (NestJS) y un servicio de IA (FastAPI) para analizar audios WAV/MP3 y mostrar resultados con espectrogramas y detecciones.
+          </div>
+          <div>
+            <strong>Planteamiento del problema y justificación:</strong> La identificación manual requiere expertos y tiempo. La plataforma reduce barreras tecnológicas, facilita educación ambiental y monitoreo comunitario, y demuestra arquitectura moderna reproducible.
+          </div>
+          <div>
+            <strong>Objetivos:</strong>
+            <ul className="list-disc ml-6">
+              <li>General: Implementar un sistema web que reconozca especies de aves por su canto con IA.</li>
+              <li>Específicos: Autenticación JWT; orquestación backend-IA; procesamiento de audio y espectrogramas; UI de subida y resultados; evaluación de precisión y tiempos; persistencia opcional con Prisma.</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Referente teórico:</strong>
+            <ul className="list-disc ml-6">
+              <li>Procesamiento de señal: mono 48 kHz, espectrogramas, waveform.</li>
+              <li>Clasificación: modelo preentrenado (BirdNET) y top-N con umbral.</li>
+              <li>Arquitectura: App Router, NestJS, FastAPI, CORS y FormData.</li>
+              <li>Seguridad: JWT y separación de capas.</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Metodología:</strong>
+            <ul className="list-disc ml-6">
+              <li>Tipo: investigación aplicada y desarrollo experimental.</li>
+              <li>Diseño: cliente-servidor; pipeline de audio e inferencia.</li>
+              <li>Población-muestra: audios de cantos en WAV/MP3.</li>
+              <li>Técnicas: captura de audios, dataset de prueba, metadatos opcionales.</li>
+              <li>Evaluación: precisión top-1/top-3, tiempos de respuesta y robustez.</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Resultados:</strong> Plataforma funcional con espectrogramas y top3; soporte MP3/WAV y scripts de arranque; historial persistente opcional y evaluación básica de precisión.
+          </div>
+          <div>
+            <strong>Conclusiones:</strong> Integración web + procesamiento de señal posibilita identificación útil para educación y monitoreo; arquitectura modular facilita mantenimiento y expansión.
+          </div>
+          <div>
+            <strong>Bibliografía (5):</strong>
+            <ul className="list-disc ml-6">
+              <li>BirdNET (Cornell Lab of Ornithology).</li>
+              <li>FastAPI Documentation.</li>
+              <li>NestJS Documentation.</li>
+              <li>Next.js Documentation.</li>
+              <li>FFmpeg Documentation.</li>
+            </ul>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Mapa Conceptual (Referencia Teórica)">
+        <div className="space-y-2">
+          <div className="rounded-lg border border-slate-200 p-4">
+            <ul className="space-y-2">
+              <li><strong>Bioacústica</strong> → captura de cantos</li>
+              <li><strong>Procesamiento de audio</strong> → decodificación MP3/WAV → resampleo a 48 kHz → normalización</li>
+              <li><strong>Representaciones</strong> → espectrogramas + waveform</li>
+              <li><strong>Modelo IA (BirdNET)</strong> → inferencia → probabilidades por especie</li>
+              <li><strong>Selección</strong> → top-N con umbral de confianza</li>
+              <li><strong>Backend</strong> → orquesta flujo, guarda resultados</li>
+              <li><strong>Frontend</strong> → visualización tipo holograma, UI de resultados</li>
+              <li><strong>Usuario/Investigación</strong> → interpretación y toma de decisiones</li>
+            </ul>
+          </div>
+        </div>
+      </Section>
     </div>
   );
 }

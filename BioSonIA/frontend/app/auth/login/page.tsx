@@ -6,12 +6,12 @@ import { api } from "../../../lib/api";
 
 export const dynamic = 'force-dynamic';
 
-export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'login' | 'register' }) {
+export default function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const modeParam = searchParams?.get('mode');
   
-  const [isLogin, setIsLogin] = useState(initialMode === 'login' && modeParam !== 'register');
+  const [isLogin, setIsLogin] = useState(modeParam !== 'register');
   
   // Login State
   const [loginEmail, setLoginEmail] = useState("");

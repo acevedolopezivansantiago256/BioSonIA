@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '../../../lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,34 +27,18 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      // 1. Register
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: formData.name,
-          email: formData.email,
-          password: formData.password
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('El registro falló. Por favor intenta de nuevo.');
+      if (!formData.email || !formData.password || !formData.name) {
+        throw new Error('Todos los campos son obligatorios');
       }
-
-      // 2. Login automatically
-      const loginRes = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-      
-      const loginData = await loginRes.json();
-      if (loginData.token) {
-        localStorage.setItem('token', loginData.token);
+      const resReg = await api.register(formData.email, formData.password);
+      if (!resReg?.ok) {
+        throw new Error(resReg?.message || 'Error al registrarse');
+      }
+      const resLogin = await api.login(formData.email, formData.password);
+      const token = resLogin?.accessToken;
+      if (token) {
+        try { localStorage.setItem('token', token); } catch {}
+        api.setToken(token);
         router.push('/upload');
       } else {
         router.push('/auth/login');
