@@ -13,7 +13,9 @@
     "build": "echo 'Use workspace build scripts'",
     "front": "npm run -w frontend dev",
     "front:p3010": "npm run -w frontend dev:p3010",
-    "back": "npm run -w backend dev:demo"
+    "back": "npm run -w backend dev:demo",
+    "ai:install": "py -3.10 -m venv ai/.venv && ai/.venv/Scripts/python -m pip install -r ai/requirements.txt",
+    "ai:start": "if exist ai\\.venv\\Scripts\\python (ai\\.venv\\Scripts\\python ai\\server.py) else (python ai\\server.py)"
   },
   "engines": {
     "node": ">=18.0.0"
