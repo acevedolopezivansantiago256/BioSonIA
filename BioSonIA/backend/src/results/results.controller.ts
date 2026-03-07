@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { memoryStore, AnalysisRecord } from '../shared/inmemory.store';
 
 let prisma: PrismaClient | null = null;
+const dbDisabled = process.env.DISABLE_DB === 'true' || !process.env.DATABASE_URL;
 
 const normalizeTop3 = (raw: any): Array<{ species: string; confidence: number }> => {
   if (!Array.isArray(raw)) return [];
@@ -26,7 +27,7 @@ const normalizeTop3 = (raw: any): Array<{ species: string; confidence: number }>
 export class ResultsController {
   @Get('results/:id')
   async getResult(@Param('id') id: string) {
-    if (process.env.DISABLE_DB === 'true') {
+    if (dbDisabled) {
       const rec = memoryStore.analyses.get(id);
       if (!rec || !rec.result) return {};
       return rec.result;
@@ -56,7 +57,7 @@ export class ResultsController {
 
   @Get('history')
   async history() {
-    if (process.env.DISABLE_DB === 'true') {
+    if (dbDisabled) {
       const arr = Array.from(memoryStore.analyses.values()) as AnalysisRecord[];
       return arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }

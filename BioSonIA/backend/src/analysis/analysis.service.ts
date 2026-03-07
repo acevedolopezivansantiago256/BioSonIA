@@ -4,12 +4,14 @@ import { PrismaClient } from '@prisma/client';
 import { memoryStore } from '../shared/inmemory.store';
 
 let prisma: PrismaClient | null = null;
+const dbDisabled = process.env.DISABLE_DB === 'true' || !process.env.DATABASE_URL;
 
 @Injectable()
 export class AnalysisService {
   async queueAndProcess(filePath: string): Promise<string> {
+    const timeoutMs = Number(process.env.AI_TIMEOUT_MS || '180000');
     // Modo sin BD: usa almacenamiento en memoria
-    if (process.env.DISABLE_DB === 'true') {
+    if (dbDisabled) {
       const id = `${Date.now()}`;
       memoryStore.analyses.set(id, {
         id,
@@ -34,13 +36,26 @@ export class AnalysisService {
           if (date) form.append('date', date);
           form.append('min_confidence', minConf);
           const headers = { ...form.getHeaders(), Expect: '' };
-          return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
+          return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: timeoutMs });
         })();
         const d = res?.data || {};
+        const espectrograma_base64 =
+          typeof d?.spectrograma_base64 === 'string'
+            ? d.spectrograma_base64
+            : typeof d?.espectrograma_base64 === 'string'
+              ? d.espectrograma_base64
+              : undefined;
+        const espectrograma_birdnet_base64 = typeof d?.espectrograma_birdnet_base64 === 'string' ? d.espectrograma_birdnet_base64 : undefined;
+        const waveform_pair_base64 = typeof d?.waveform_pair_base64 === 'string' ? d.waveform_pair_base64 : undefined;
+        const basePayload = {
+          espectrograma_base64,
+          espectrograma_birdnet_base64,
+          waveform_pair_base64
+        };
         const result =
           d?.detected === false
-            ? { detected: false, message: d?.message || 'No se detectaron aves con suficiente confianza' }
-            : { detected: true, top3: Array.isArray(d?.top3) ? d.top3 : [], metadata: d?.metadata || {} };
+            ? { detected: false, message: d?.message || 'No se detectaron aves con suficiente confianza', metadata: d?.metadata || {}, ...basePayload }
+            : { detected: true, top3: Array.isArray(d?.top3) ? d.top3 : [], metadata: d?.metadata || {}, ...basePayload };
         memoryStore.analyses.set(id, {
           id,
           filename: filePath,
@@ -86,7 +101,7 @@ export class AnalysisService {
         if (date) form.append('date', date);
         form.append('min_confidence', minConf);
         const headers = { ...form.getHeaders(), Expect: '' };
-        return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
+        return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: timeoutMs });
       })();
       const d = res?.data || {};
       const top3 = Array.isArray(d?.top3) ? d.top3 : [];

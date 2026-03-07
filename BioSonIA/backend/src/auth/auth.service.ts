@@ -3,13 +3,14 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaClient } from '@prisma/client';
 let prisma: PrismaClient | null = null;
+const dbDisabled = process.env.DISABLE_DB === 'true' || !process.env.DATABASE_URL;
 
 @Injectable()
 export class AuthService {
   constructor(private readonly jwt: JwtService) {}
 
   async register(email: string, password: string) {
-    if (process.env.DISABLE_DB === 'true') {
+    if (dbDisabled) {
       // Modo sin BD: aceptar registro y devolver un usuario demo
       return { ok: true, user: { id: 'demo', email } };
     }
@@ -22,7 +23,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    if (process.env.DISABLE_DB === 'true') {
+    if (dbDisabled) {
       // Modo sin BD: generar tokens directos para el email proporcionado
       const accessToken = await this.jwt.signAsync({ sub: 'demo', email });
       const refreshToken = await this.jwt.signAsync({ sub: 'demo' }, { expiresIn: '7d' });

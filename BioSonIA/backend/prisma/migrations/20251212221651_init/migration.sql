@@ -3,7 +3,7 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
@@ -14,7 +14,7 @@ CREATE TABLE "File" (
     "size" INTEGER NOT NULL,
     "duration" REAL,
     "userId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "File_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
@@ -25,6 +25,8 @@ CREATE TABLE "AIResult" (
     "probabilidad" REAL NOT NULL,
     "top3Json" TEXT,
     "espectrogramaBase64" TEXT,
+    "espectrogramaBirdnetBase64" TEXT,
+    "waveformPairBase64" TEXT,
     "metadataJson" TEXT,
     "detectionsJson" TEXT
 );
@@ -36,7 +38,7 @@ CREATE TABLE "Analysis" (
     "fileId" TEXT NOT NULL,
     "userId" TEXT,
     "aiResultId" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Analysis_fileId_fkey" FOREIGN KEY ("fileId") REFERENCES "File" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Analysis_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "Analysis_aiResultId_fkey" FOREIGN KEY ("aiResultId") REFERENCES "AIResult" ("id") ON DELETE SET NULL ON UPDATE CASCADE
