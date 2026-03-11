@@ -35,6 +35,7 @@ model AIResult {
   top3Json            String?
   espectrogramaBase64        String?
   espectrogramaBirdnetBase64 String?
+  espectrogramaReferenciaBase64 String?
   waveformPairBase64         String?
   metadataJson        String?
   detectionsJson      String?

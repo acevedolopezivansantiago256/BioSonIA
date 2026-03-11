@@ -50,6 +50,7 @@ export class ResultsController {
       metadata,
       espectrograma_base64: r.espectrogramaBase64,
       espectrograma_birdnet_base64: r.espectrogramaBirdnetBase64,
+      espectrograma_referencia_base64: r.espectrogramaReferenciaBase64,
       waveform_pair_base64: r.waveformPairBase64
     };
   }

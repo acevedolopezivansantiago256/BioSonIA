@@ -11,13 +11,53 @@ interface BirdChatProps {
   speciesName: string;
 }
 
+type ChatSession = {
+  id: string;
+  speciesName: string;
+  updatedAt: number;
+  messages: Message[];
+};
+
+const STORAGE_KEY = 'biosonia_chat_sessions_v1';
+const MAX_SESSIONS = 20;
+
+const safeParseSessions = (raw: string | null): ChatSession[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((s: any) => s && typeof s.id === 'string' && typeof s.speciesName === 'string' && typeof s.updatedAt === 'number' && Array.isArray(s.messages))
+      .map((s: any) => ({
+        id: s.id,
+        speciesName: s.speciesName,
+        updatedAt: s.updatedAt,
+        messages: s.messages
+          .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+          .map((m: any) => ({ role: m.role, content: m.content })),
+      }));
+  } catch {
+    return [];
+  }
+};
+
+const newId = () => {
+  const c: any = globalThis as any;
+  if (c?.crypto?.randomUUID) return c.crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 export default function BirdChat({ speciesName }: BirdChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const initialized = useRef(false);
+  const hydrated = useRef(false);
+  const lastPrefillSessionId = useRef<string | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -26,8 +66,53 @@ export default function BirdChat({ speciesName }: BirdChatProps) {
   }, [messages]);
 
   useEffect(() => {
-    if (!isOpen || initialized.current || !speciesName) return;
-    initialized.current = true;
+    if (hydrated.current) return;
+    hydrated.current = true;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const loaded = safeParseSessions(raw).sort((a, b) => b.updatedAt - a.updatedAt);
+    setSessions(loaded.slice(0, MAX_SESSIONS));
+  }, [speciesName, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!speciesName) return;
+    if (activeSessionId) return;
+
+    const existing = sessions
+      .filter((s) => s.speciesName === speciesName)
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+
+    if (existing) {
+      setActiveSessionId(existing.id);
+      setMessages(existing.messages);
+      return;
+    }
+
+    const id = newId();
+    const next: ChatSession = { id, speciesName, updatedAt: Date.now(), messages: [] };
+    const nextSessions = [next, ...sessions].slice(0, MAX_SESSIONS);
+    setSessions(nextSessions);
+    setActiveSessionId(id);
+    setMessages([]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+  }, [activeSessionId, isOpen, sessions, speciesName]);
+
+  useEffect(() => {
+    if (!activeSessionId) return;
+    const nextSessions = sessions
+      .map((s) => (s.id === activeSessionId ? { ...s, messages, updatedAt: Date.now() } : s))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, MAX_SESSIONS);
+    setSessions(nextSessions);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+  }, [activeSessionId, messages]);
+
+  useEffect(() => {
+    if (!isOpen || !speciesName || !activeSessionId) return;
+    if (loading) return;
+    if (messages.length > 0) return;
+    if (lastPrefillSessionId.current === activeSessionId) return;
+    lastPrefillSessionId.current = activeSessionId;
 
     const fetchInitialInfo = async () => {
       setLoading(true);
@@ -59,7 +144,7 @@ export default function BirdChat({ speciesName }: BirdChatProps) {
     };
 
     fetchInitialInfo();
-  }, [speciesName, isOpen]);
+  }, [activeSessionId, isOpen, messages.length, speciesName, loading]);
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -99,6 +184,36 @@ export default function BirdChat({ speciesName }: BirdChatProps) {
     }
   };
 
+  const startNewChat = () => {
+    if (!speciesName) return;
+    const id = newId();
+    const next: ChatSession = { id, speciesName, updatedAt: Date.now(), messages: [] };
+    const nextSessions = [next, ...sessions].slice(0, MAX_SESSIONS);
+    setSessions(nextSessions);
+    setActiveSessionId(id);
+    setMessages([]);
+    setShowHistory(false);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+  };
+
+  const loadChat = (id: string) => {
+    const s = sessions.find((x) => x.id === id);
+    if (!s) return;
+    setActiveSessionId(s.id);
+    setMessages(s.messages);
+    setShowHistory(false);
+  };
+
+  const deleteChat = (id: string) => {
+    const nextSessions = sessions.filter((s) => s.id !== id);
+    setSessions(nextSessions);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSessions));
+    if (activeSessionId === id) {
+      setActiveSessionId(null);
+      setMessages([]);
+    }
+  };
+
   return (
     <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end print:hidden">
       
@@ -119,13 +234,79 @@ export default function BirdChat({ speciesName }: BirdChatProps) {
               </div>
               <div>
                   <h3 className="font-bold text-sm text-slate-800 dark:text-white">BioSonIA Assistant</h3>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Powered by Groq AI</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Powered by Gemini</p>
               </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
-             <span className="material-symbols-rounded">close</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowHistory((v) => !v)}
+              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors"
+              aria-label="Historial"
+            >
+              <span className="material-symbols-rounded">history</span>
+            </button>
+            <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+               <span className="material-symbols-rounded">close</span>
+            </button>
+          </div>
         </div>
+
+        {showHistory && (
+          <div className="border-b border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">Historial</div>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Nuevo chat
+              </button>
+            </div>
+
+            <div className="mt-2 max-h-40 overflow-y-auto">
+              {sessions.length === 0 ? (
+                <div className="text-xs text-slate-500 dark:text-slate-400 py-2">Aún no hay chats guardados.</div>
+              ) : (
+                <div className="space-y-1">
+                  {sessions
+                    .slice()
+                    .sort((a, b) => b.updatedAt - a.updatedAt)
+                    .map((s) => (
+                      <div
+                        key={s.id}
+                        className={`flex items-center justify-between gap-2 rounded-lg px-2 py-2 ${
+                          s.id === activeSessionId ? 'bg-primary/10' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => loadChat(s.id)}
+                          className="flex-1 text-left min-w-0"
+                        >
+                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                            {s.speciesName || 'Desconocida'}
+                          </div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {new Date(s.updatedAt).toLocaleString()}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteChat(s.id)}
+                          className="p-1 text-slate-400 hover:text-rose-500"
+                          aria-label="Eliminar chat"
+                        >
+                          <span className="material-symbols-rounded text-base">delete</span>
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         <div 

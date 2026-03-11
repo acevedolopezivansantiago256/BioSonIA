@@ -16,6 +16,7 @@ export class AnalysisService {
       createdAt: new Date(),
     });
     try {
+      const timeoutMs = Number(process.env.AI_TIMEOUT_MS || '180000');
       const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
       const res = await (async () => {
         const FormData = require('form-data');
@@ -25,13 +26,13 @@ export class AnalysisService {
         const lat = process.env.AI_LAT;
         const lon = process.env.AI_LON;
         const date = process.env.AI_DATE;
-        const minConf = process.env.MIN_CONFIDENCE || '0.3';
+        const minConf = process.env.MIN_CONFIDENCE || '0.1';
         if (lat) form.append('lat', lat);
         if (lon) form.append('lon', lon);
         if (date) form.append('date', date);
         form.append('min_confidence', minConf);
         const headers = { ...form.getHeaders(), Expect: '' };
-        return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
+        return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: timeoutMs });
       })();
       const d = res?.data || {};
       const result =
@@ -41,6 +42,7 @@ export class AnalysisService {
             message: d?.message || 'No se detectaron aves con suficiente confianza',
             espectrograma_base64: d?.espectrograma_base64,
             espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
+            espectrograma_referencia_base64: d?.espectrograma_referencia_base64,
             waveform_pair_base64: d?.waveform_pair_base64,
           }
           : {
@@ -49,6 +51,7 @@ export class AnalysisService {
             metadata: d?.metadata || {},
             espectrograma_base64: d?.espectrograma_base64,
             espectrograma_birdnet_base64: d?.espectrograma_birdnet_base64,
+            espectrograma_referencia_base64: d?.espectrograma_referencia_base64,
             waveform_pair_base64: d?.waveform_pair_base64,
           };
       memoryStore.analyses.set(id, {
@@ -83,6 +86,7 @@ export class AnalysisService {
       const file = await client.file.create({ data: { path: filePath, mimeType: 'audio', size: 0 } });
       const analysis = await client.analysis.create({ data: { fileId: file.id, status: 'running' } });
       try {
+        const timeoutMs = Number(process.env.AI_TIMEOUT_MS || '180000');
         const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
         const res = await (async () => {
           const FormData = require('form-data');
@@ -92,13 +96,13 @@ export class AnalysisService {
           const lat = process.env.AI_LAT;
           const lon = process.env.AI_LON;
           const date = process.env.AI_DATE;
-          const minConf = process.env.MIN_CONFIDENCE || '0.3';
+          const minConf = process.env.MIN_CONFIDENCE || '0.1';
           if (lat) form.append('lat', lat);
           if (lon) form.append('lon', lon);
           if (date) form.append('date', date);
           form.append('min_confidence', minConf);
           const headers = { ...form.getHeaders(), Expect: '' };
-          return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 60000 });
+          return axios.post(`${AI_URL}/analyze`, form, { headers, maxBodyLength: Infinity, maxContentLength: Infinity, timeout: timeoutMs });
         })();
         const d = res?.data || {};
         const top3 = Array.isArray(d?.top3) ? d.top3 : [];
@@ -117,6 +121,7 @@ export class AnalysisService {
             top3Json: JSON.stringify(top3),
             espectrogramaBase64: d?.spectrograma_base64 || d?.espectrograma_base64 || null,
             espectrogramaBirdnetBase64: d?.espectrograma_birdnet_base64 || null,
+            espectrogramaReferenciaBase64: d?.espectrograma_referencia_base64 || null,
             waveformPairBase64: d?.waveform_pair_base64 || null,
             metadataJson: JSON.stringify(metadataToStore),
             detectionsJson: JSON.stringify(d?.detections || d?.detecciones || [])

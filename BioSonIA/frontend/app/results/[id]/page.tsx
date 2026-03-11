@@ -15,6 +15,7 @@ type ResultPayload = {
   metadata?: any;
   espectrograma_base64?: string | null;
   espectrograma_birdnet_base64?: string | null;
+  espectrograma_referencia_base64?: string | null;
   waveform_pair_base64?: string | null;
 };
 
@@ -132,6 +133,7 @@ export default function ResultsPage() {
 
   const specStd = data.espectrograma_base64 ? `data:image/png;base64,${data.espectrograma_base64}` : null;
   const specBN = data.espectrograma_birdnet_base64 ? `data:image/png;base64,${data.espectrograma_birdnet_base64}` : null;
+  const specRef = data.espectrograma_referencia_base64 ? `data:image/png;base64,${data.espectrograma_referencia_base64}` : null;
   const wavePair = data.waveform_pair_base64 ? `data:image/png;base64,${data.waveform_pair_base64}` : null;
 
   return (
@@ -281,8 +283,8 @@ export default function ResultsPage() {
            </div>
         </div>
 
-        {/* Spectrogram Grid - Full Width */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Spectrogram Grid */}
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${specRef ? 'lg:grid-cols-3' : ''} gap-6 mb-6`}>
              <div className="h-80">
                 <SpectrogramCard 
                   title="Standard Linear Spectrogram" 
@@ -297,6 +299,15 @@ export default function ResultsPage() {
                   altText="BirdNET Spectrogram" 
                 />
              </div>
+             {specRef && (
+               <div className="h-80">
+                  <SpectrogramCard 
+                    title={`Reference: ${speciesName}`}
+                    imageSrc={specRef} 
+                    altText={`Reference spectrogram for ${speciesName}`}
+                  />
+               </div>
+             )}
         </div>
 
         {/* Waveform Full Width */}

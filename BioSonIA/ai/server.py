@@ -123,7 +123,7 @@ async def analyze(
     lat: Optional[float] = Form(None),
     lon: Optional[float] = Form(None),
     date: Optional[str] = Form(None),  # YYYY-MM-DD
-    min_confidence: float = Form(0.6),
+    min_confidence: float = Form(0.1),
     confidence_threshold: Optional[float] = Form(None),
 ):
     try:
@@ -170,7 +170,7 @@ async def analyze(
                 lat=lat_used,
                 lon=lon_used,
                 date=datetime.strptime(date_used, "%Y-%m-%d"),
-                min_conf=threshold,
+                min_conf=min(0.05, threshold),
             )
             recording.analyze()
 
@@ -208,6 +208,30 @@ async def analyze(
 
             detected = bool(top3) and float(top3[0]["confidence"]) >= threshold
 
+            # Buscar espectrograma de referencia si se detectó especie
+            b64_ref = None
+            if detected:
+                species_name = top3[0]["species"]
+                # Posibles rutas relativas desde donde se ejecute el script
+                candidates = [
+                    os.path.join("references", f"{species_name}.wav"),
+                    os.path.join("references", f"{species_name}.mp3"),
+                    os.path.join("ai", "references", f"{species_name}.wav"),
+                    os.path.join("ai", "references", f"{species_name}.mp3"),
+                ]
+                for cand in candidates:
+                    if os.path.exists(cand):
+                        try:
+                            y_ref, sr_ref = load_audio_mono_48k(cand)
+                            if y_ref is not None:
+                                S_ref = mel_spectrogram(y_ref, int(sr_ref))
+                                png_ref = spectrogram_png_bytes(S_ref, cmap="magma", title=f"Reference: {species_name}")
+                                b64_ref = base64.b64encode(png_ref).decode("ascii")
+                                logger.info(f"Referencia generada para {species_name} desde {cand}")
+                                break
+                        except Exception as e:
+                            logger.error(f"Error generando referencia para {cand}: {e}")
+
             metadata = {
                 "model": "BirdNET",
                 "min_confidence": threshold,
@@ -228,6 +252,7 @@ async def analyze(
                         "espectrograma_base64": b64_std,
                         "espectrograma_birdnet_base64": b64_bn,
                         "waveform_pair_base64": b64_wave,
+                        "espectrograma_referencia_base64": None,
                         "detections": detections,
                         "top3": [],
                     }
@@ -241,6 +266,7 @@ async def analyze(
                     "espectrograma_base64": b64_std,
                     "espectrograma_birdnet_base64": b64_bn,
                     "waveform_pair_base64": b64_wave,
+                    "espectrograma_referencia_base64": b64_ref,
                     "detections": detections,
                 }
             )
