@@ -1,12 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { memoryStore } from '../shared/inmemory.store';
-
-let prisma: PrismaClient | null = null;
+import { File } from '../entities/file.entity';
+import { Analysis } from '../entities/analysis.entity';
+import { AIResult } from '../entities/ai-result.entity';
 
 @Injectable()
 export class AnalysisService {
+  constructor(
+    @InjectRepository(File)
+    private fileRepository: Repository<File>,
+    @InjectRepository(Analysis)
+    private analysisRepository: Repository<Analysis>,
+    @InjectRepository(AIResult)
+    private aiResultRepository: Repository<AIResult>,
+  ) {}
+
   private async processNoDB(filePath: string): Promise<string> {
     const id = `${Date.now()}`;
     memoryStore.analyses.set(id, {
@@ -76,15 +87,19 @@ export class AnalysisService {
     }
     return id;
   }
+
   async queueAndProcess(filePath: string): Promise<string> {
     if (process.env.DISABLE_DB === 'true') {
       return this.processNoDB(filePath);
     }
 
     try {
-      const client = prisma ?? (prisma = new PrismaClient());
-      const file = await client.file.create({ data: { path: filePath, mimeType: 'audio', size: 0 } });
-      const analysis = await client.analysis.create({ data: { fileId: file.id, status: 'running' } });
+      const file = this.fileRepository.create({ path: filePath, mimeType: 'audio', size: 0 });
+      await this.fileRepository.save(file);
+      
+      const analysis = this.analysisRepository.create({ fileId: file.id, status: 'running' });
+      await this.analysisRepository.save(analysis);
+      
       try {
         const timeoutMs = Number(process.env.AI_TIMEOUT_MS || '180000');
         const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
@@ -114,23 +129,28 @@ export class AnalysisService {
           d?.detected === false
             ? { ...metadata, detected: false, message: d?.message || 'No se detectaron aves con suficiente confianza' }
             : { ...metadata, detected: true };
-        const ai = await client.aIResult.create({
-          data: {
-            especie,
-            probabilidad,
-            top3Json: JSON.stringify(top3),
-            espectrogramaBase64: d?.spectrograma_base64 || d?.espectrograma_base64 || null,
-            espectrogramaBirdnetBase64: d?.espectrograma_birdnet_base64 || null,
-            espectrogramaReferenciaBase64: d?.espectrograma_referencia_base64 || null,
-            waveformPairBase64: d?.waveform_pair_base64 || null,
-            metadataJson: JSON.stringify(metadataToStore),
-            detectionsJson: JSON.stringify(d?.detections || d?.detecciones || [])
-          }
+            
+        const ai = this.aiResultRepository.create({
+          especie,
+          probabilidad,
+          top3Json: JSON.stringify(top3),
+          espectrogramaBase64: d?.spectrograma_base64 || d?.espectrograma_base64 || null,
+          espectrogramaBirdnetBase64: d?.espectrograma_birdnet_base64 || null,
+          espectrogramaReferenciaBase64: d?.espectrograma_referencia_base64 || null,
+          waveformPairBase64: d?.waveform_pair_base64 || null,
+          metadataJson: JSON.stringify(metadataToStore),
+          detectionsJson: JSON.stringify(d?.detections || d?.detecciones || [])
         });
-        await client.analysis.update({ where: { id: analysis.id }, data: { status: 'done', aiResultId: ai.id } });
+        await this.aiResultRepository.save(ai);
+        
+        analysis.status = 'done';
+        analysis.aiResultId = ai.id;
+        await this.analysisRepository.save(analysis);
+        
         return analysis.id;
       } catch (e: any) {
-        await client.analysis.update({ where: { id: analysis.id }, data: { status: 'failed' } });
+        analysis.status = 'failed';
+        await this.analysisRepository.save(analysis);
         return analysis.id;
       }
     } catch {

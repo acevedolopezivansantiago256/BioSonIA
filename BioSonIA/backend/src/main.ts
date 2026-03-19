@@ -8,8 +8,12 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const corsOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: corsOrigins.length ? corsOrigins : ['http://localhost:3000', 'http://127.0.0.1:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -17,10 +21,11 @@ async function bootstrap() {
   app.use(json({ limit: '25mb' }));
   app.use(urlencoded({ extended: true }));
   const port = Number(process.env.PORT) || 5000;
-  await app.listen(port, '127.0.0.1');
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
   // Simple startup log for dev tracing
   // eslint-disable-next-line no-console
-  console.log(`Backend listening on http://localhost:${port}`);
+  console.log(`Backend listening on http://${host}:${port}`);
   const server = app.getHttpServer();
   try {
     const addr = server.address() as any;

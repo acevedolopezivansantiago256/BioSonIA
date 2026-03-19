@@ -69,18 +69,12 @@ export default function AuthPage() {
       if (!resReg?.ok) {
          throw new Error(resReg?.message || "Error al registrarse");
       }
-      
-      // Auto Login after register
-      const resLogin = await api.login(regEmail, regPassword);
-      const token = resLogin?.accessToken;
-      if (token) {
-        try { localStorage.setItem("token", token); } catch {}
-        api.setToken(token);
-        router.push("/upload");
-      } else {
-        setIsLogin(true); // Switch to login if auto-login fails for some reason
-        setError("Cuenta creada. Por favor inicia sesión.");
-      }
+
+      setRegName("");
+      setRegEmail("");
+      setRegPassword("");
+      setIsLogin(true);
+      setError("Cuenta creada. Ahora inicia sesión.");
     } catch (err: any) {
       setError(err.message || "Error en el registro");
     } finally {

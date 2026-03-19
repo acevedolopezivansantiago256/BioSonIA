@@ -45,7 +45,9 @@
     "__comentario_py_venv": "Inicia ai\\server.py con el Python del venv ai\\.venv.",
     "py:venv": "ai\\.venv\\Scripts\\python ai\\server.py",
     "__comentario_ai_help": "Muestra un ejemplo de uso en consola.",
-    "ai:help": "echo Uso: npm run ai:install ^&^& npm run ai:start  (ejecuta desde la raiz BioSonIA\\\\BioSonIA)"
+    "ai:help": "echo Uso: npm run ai:install ^&^& npm run ai:start  (ejecuta desde la raiz BioSonIA\\\\BioSonIA)",
+    "typeorm:run": "npm run typeorm:run -w biosonia-backend",
+    "typeorm:revert": "npm run typeorm:revert -w biosonia-backend"
   },
   "engines": {
     "__comentario_node": "Versión mínima recomendada de Node para este proyecto.",

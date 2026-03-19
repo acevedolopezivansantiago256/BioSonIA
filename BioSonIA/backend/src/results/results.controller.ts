@@ -1,8 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Analysis } from '../entities/analysis.entity';
 import { memoryStore, AnalysisRecord } from '../shared/inmemory.store';
-
-let prisma: PrismaClient | null = null;
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const normalizeTop3 = (raw: any): Array<{ species: string; confidence: number }> => {
   if (!Array.isArray(raw)) return [];
@@ -24,6 +25,11 @@ const normalizeTop3 = (raw: any): Array<{ species: string; confidence: number }>
 
 @Controller()
 export class ResultsController {
+  constructor(
+    @InjectRepository(Analysis)
+    private analysisRepository: Repository<Analysis>,
+  ) {}
+
   @Get('results/:id')
   async getResult(@Param('id') id: string) {
     if (process.env.DISABLE_DB === 'true') {
@@ -31,11 +37,12 @@ export class ResultsController {
       if (!rec || !rec.result) return {};
       return rec.result;
     }
-    const client = prisma ?? (prisma = new PrismaClient());
-    const analysis = await client.analysis.findUnique({
+    
+    const analysis = await this.analysisRepository.findOne({
       where: { id },
-      include: { aiResult: true }
+      relations: ['aiResult']
     });
+    
     if (!analysis || !analysis.aiResult) return {};
     const r = analysis.aiResult;
     const top3 = normalizeTop3(JSON.parse(r.top3Json || '[]'));
@@ -55,14 +62,18 @@ export class ResultsController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('history')
   async history() {
     if (process.env.DISABLE_DB === 'true') {
       const arr = Array.from(memoryStore.analyses.values()) as AnalysisRecord[];
       return arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
-    const client = prisma ?? (prisma = new PrismaClient());
-    const list = await client.analysis.findMany({ include: { aiResult: true }, orderBy: { createdAt: 'desc' } });
+    
+    const list = await this.analysisRepository.find({
+      relations: ['aiResult'],
+      order: { createdAt: 'DESC' }
+    });
     return list;
   }
 }

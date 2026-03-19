@@ -15,8 +15,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -34,15 +32,7 @@ export default function RegisterPage() {
       if (!resReg?.ok) {
         throw new Error(resReg?.message || 'Error al registrarse');
       }
-      const resLogin = await api.login(formData.email, formData.password);
-      const token = resLogin?.accessToken;
-      if (token) {
-        try { localStorage.setItem('token', token); } catch {}
-        api.setToken(token);
-        router.push('/upload');
-      } else {
-        router.push('/auth/login');
-      }
+      router.push('/auth/login');
 
     } catch (err: any) {
       setError(err.message || 'Error al crear la cuenta');
