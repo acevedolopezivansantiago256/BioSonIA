@@ -8,18 +8,29 @@ import { User } from './entities/user.entity';
 import { File } from './entities/file.entity';
 import { AIResult } from './entities/ai-result.entity';
 import { Analysis } from './entities/analysis.entity';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+function envOrThrow(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '12345',
-      database: 'postgres', // Base de datos por defecto
+      host: envOrThrow('DB_HOST'),
+      port: Number(envOrThrow('DB_PORT')),
+      username: envOrThrow('DB_USER'),
+      password: envOrThrow('DB_PASSWORD'),
+      database: envOrThrow('DB_NAME'),
       entities: [User, File, AIResult, Analysis],
-      synchronize: false, // Usaremos los scripts de migración manuales
+      synchronize: false,
     }),
     AuthModule,
     UploadModule,

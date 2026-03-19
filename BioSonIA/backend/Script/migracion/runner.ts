@@ -1,4 +1,15 @@
 import { Client } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+function envOrThrow(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
 
 const action = process.argv[2];
 
@@ -60,11 +71,11 @@ DROP TABLE IF EXISTS "users" CASCADE;
 const sql = action === 'revert' ? revertSql : createSql;
 
 const client = new Client({
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT || '5432'),
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '12345',
-  database: process.env.DB_NAME || 'postgres'
+  host: envOrThrow('DB_HOST'),
+  port: Number(envOrThrow('DB_PORT')),
+  user: envOrThrow('DB_USER'),
+  password: envOrThrow('DB_PASSWORD'),
+  database: envOrThrow('DB_NAME')
 });
 
 client.connect()
