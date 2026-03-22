@@ -8,6 +8,7 @@ export type AnalysisRecord = {
 };
 
 class InMemoryStore {
-  analyses = new Map<string, AnalysisRecord>();}
+  analyses = new Map<string, AnalysisRecord>();
+}
 
 export const memoryStore = new InMemoryStore();

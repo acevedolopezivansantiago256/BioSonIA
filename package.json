@@ -1,0 +1,55 @@
+{
+  "__comentarios": [
+    "Este archivo usa JSON estricto (npm no acepta // comentarios).",
+    "Por eso los comentarios se agregan como campos adicionales con texto.",
+    "Carpeta raíz: c:\\Users\\SENA\\Desktop\\Proyecto\\BioSonIA\\BioSonIA"
+  ],
+  "name": "BioSonIA",
+  "__comentario_name": "Nombre del monorepo (solo identificación).",
+  "private": true,
+  "__comentario_private": "Evita publicar el paquete por accidente en npm.",
+  "version": "0.1.0",
+  "__comentario_version": "Versión del proyecto (informativa).",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "__comentario_workspaces": "Subproyectos: frontend (Next.js), backend (NestJS), shared (tipos/compartido).",
+  "scripts": {
+    "__comentario_setup": "Muestra ayuda de instalación general.",
+    "setup": "echo 'Run scripts/setup.sh or setup.ps1'",
+    "install:all": "npm install && npm run ai:install",
+    "__comentario_install_all": "Instala dependencias de Node (workspaces) y Python (IA).",
+    "dev": "powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1",
+    "__comentario_dev": "Inicia todos los servicios (Frontend, Backend, IA) en ventanas separadas.",
+    "start:all": "npm run dev",
+    "start:install": "powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1 -Install",
+    "build": "echo 'Use workspace build scripts'",
+    "__comentario_build": "La build real se ejecuta por workspace (frontend/backend).",
+    "front": "npm run dev -w biosonia-frontend",
+    "frontend": "npm run dev -w biosonia-frontend",
+    "front:p3010": "npm run dev:p3010 -w biosonia-frontend",
+    "frontend:local": "npm run dev:local -w biosonia-frontend",
+    "frontend:local:p3010": "npm run dev:local:p3010 -w biosonia-frontend",
+    "back": "set PORT=5000&& npm run dev:demo -w biosonia-backend",
+    "backend": "set PORT=5000&& npm run dev:demo -w biosonia-backend",
+    "backend:dev": "set PORT=5000&& npm run dev -w biosonia-backend",
+    "ai:install": "python -m venv ai\\.venv && set TMP=D:\\BioSonIA\\BioSonIA\\ai && set TEMP=D:\\BioSonIA\\BioSonIA\\ai && ai\\.venv\\Scripts\\python -m pip install --no-cache-dir -r ai\\requirements.txt",
+    "ai:start": "if exist ai\\.venv\\Scripts\\python (ai\\.venv\\Scripts\\python ai\\server.py) else (python ai\\server.py)",
+    "__comentario_py_setup": "Alias de ai:install (prepara el entorno).",
+    "py:setup": "npm run ai:install",
+    "__comentario_py": "Inicia ai\\server.py con python del sistema (sin venv).",
+    "py": "python ai\\server.py",
+    "__comentario_py_venv": "Inicia ai\\server.py con el Python del venv ai\\.venv.",
+    "py:venv": "ai\\.venv\\Scripts\\python ai\\server.py",
+    "__comentario_ai_help": "Muestra un ejemplo de uso en consola.",
+    "ai:help": "echo Uso: npm run ai:install ^&^& npm run ai:start  (ejecuta desde la raiz BioSonIA)",
+    "typeorm:run": "npm run typeorm:run -w biosonia-backend",
+    "typeorm:revert": "npm run typeorm:revert -w biosonia-backend"
+  },
+  "engines": {
+    "__comentario_node": "Versión mínima recomendada de Node para este proyecto.",
+    "node": ">=18.0.0"
+  }
+}
