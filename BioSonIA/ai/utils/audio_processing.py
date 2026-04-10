@@ -120,24 +120,67 @@ def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str 
     - Normalización de amplitud
     - Soporte WAV y MP3 (si hay backend de decodificación disponible)
     """
+    import tempfile
+    import os
+    
+    # Save the buffer to a temporary file to avoid hanging with librosa/pydub on BytesIO
     buf.seek(0)
-    if librosa is not None:
-        try:
-            y, sr = librosa.load(buf, sr=48000, mono=True)
-            return _normalize_audio(y.astype(np.float32)), int(sr)
-        except Exception:
-            pass
-
+    temp_suffix = ".wav"
+    if filename and filename.lower().endswith(".mp3"):
+        temp_suffix = ".mp3"
+    elif mime and "mp3" in mime.lower():
+        temp_suffix = ".mp3"
+        
     try:
-        y, sr = _load_with_pydub(buf, mime, filename)
-        if librosa is not None:
-            y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=48000).astype(np.float32)
-            return _normalize_audio(y), 48000
-        y = _resample_linear(y.astype(np.float32), int(sr), 48000)
-        return _normalize_audio(y), 48000
+        with tempfile.NamedTemporaryFile(delete=False, suffix=temp_suffix) as tmp:
+            tmp.write(buf.read())
+            tmp_path = tmp.name
     except Exception:
-        pass
+        tmp_path = None
 
+    if tmp_path:
+         try:
+             try:
+                 if AudioSegment is not None:
+                     seg = AudioSegment.from_file(tmp_path)
+                     seg = seg.set_channels(1)
+                     sr = int(seg.frame_rate)
+                     samples = np.array(seg.get_array_of_samples())
+                     if seg.sample_width == 1:
+                         y = (samples.astype(np.float32) / 128.0).astype(np.float32)
+                     elif seg.sample_width == 2:
+                         y = (samples.astype(np.float32) / 32768.0).astype(np.float32)
+                     elif seg.sample_width == 4:
+                         y = (samples.astype(np.float32) / 2147483648.0).astype(np.float32)
+                     else:
+                         y = samples.astype(np.float32)
+                     
+                     if librosa is not None:
+                         y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=48000).astype(np.float32)
+                         os.remove(tmp_path)
+                         return _normalize_audio(y), 48000
+                     y = _resample_linear(y.astype(np.float32), int(sr), 48000)
+                     os.remove(tmp_path)
+                     return _normalize_audio(y), 48000
+             except Exception:
+                 pass
+
+             if librosa is not None:
+                 try:
+                     y, sr = librosa.load(tmp_path, sr=48000, mono=True)
+                     os.remove(tmp_path)
+                     return _normalize_audio(y.astype(np.float32)), int(sr)
+                 except Exception:
+                     pass
+         finally:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
+    # Fallback to wave module (only works for WAV)
+    buf.seek(0)
     try:
         with wave.open(buf, 'rb') as w:
             sr = w.getframerate()
