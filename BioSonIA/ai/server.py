@@ -41,12 +41,30 @@ DEFAULT_LON = float(os.environ.get("DEFAULT_LON", "-72.4967"))
 try:
     from ai.utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes
 except Exception:
-    from utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes  # type: ignore
+    try:
+        from utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes  # type: ignore
+    except Exception:
+        def _missing_audio_utils(*args, **kwargs):
+            raise RuntimeError(
+                "No se encontró audio_processing.py (esperado en ai/utils o utils). "
+                "Incluye ese archivo en el despliegue."
+            )
+
+        load_audio_mono_48k = _missing_audio_utils
+        mel_spectrogram = _missing_audio_utils
+        spectrogram_png_bytes = _missing_audio_utils
+        waveform_clean_noisy_png_bytes = _missing_audio_utils
 
 try:
     from pydub.utils import which as _which
     from pydub import AudioSegment as _AS
     _ff = _which("ffmpeg")
+    if not _ff:
+        try:
+            import imageio_ffmpeg
+            _ff = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            _ff = None
     if not _ff:
         for _p in [
             r"C:\ffmpeg\bin\ffmpeg.exe",
