@@ -1,5 +1,8 @@
 import io
 import wave
+import os
+import shutil
+import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 try:
@@ -11,6 +14,54 @@ try:
     from pydub import AudioSegment
 except Exception:
     AudioSegment = None  # type: ignore
+
+
+def _find_ffmpeg_binary():
+    env_bin = os.environ.get("FFMPEG_BINARY")
+    if env_bin and os.path.exists(env_bin):
+        return env_bin
+    sys_bin = shutil.which("ffmpeg")
+    if sys_bin:
+        return sys_bin
+    try:
+        import imageio_ffmpeg
+        ff_bin = imageio_ffmpeg.get_ffmpeg_exe()
+        if ff_bin and os.path.exists(ff_bin):
+            return ff_bin
+    except Exception:
+        pass
+    return None
+
+
+def _load_with_ffmpeg_file(file_path: str, target_sr: int):
+    ffmpeg_bin = _find_ffmpeg_binary()
+    if not ffmpeg_bin:
+        raise RuntimeError("ffmpeg not available")
+    proc = subprocess.run(
+        [
+            ffmpeg_bin,
+            "-v",
+            "error",
+            "-i",
+            file_path,
+            "-f",
+            "f32le",
+            "-acodec",
+            "pcm_f32le",
+            "-ac",
+            "1",
+            "-ar",
+            str(int(target_sr)),
+            "pipe:1",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    y = np.frombuffer(proc.stdout, dtype=np.float32)
+    if y is None or y.size == 0:
+        raise RuntimeError("ffmpeg returned empty audio")
+    return y.astype(np.float32, copy=False), int(target_sr)
 
 def _normalize_audio(y: np.ndarray):
     if y is None or y.size == 0:
@@ -63,6 +114,29 @@ def load_audio_mono_16k(buf: io.BytesIO, mime: str | None = None, filename: str 
     Carga WAV/MP3 desde memoria y lo convierte a mono 16 kHz.
     Mantiene compatibilidad con el servidor que envía (mime, filename).
     """
+    buf.seek(0)
+    # Robust path for MP3/WAV in minimal cloud runtimes.
+    temp_suffix = ".wav"
+    name = (filename or "").lower()
+    m = (mime or "").lower()
+    if name.endswith(".mp3") or "mp3" in m:
+        temp_suffix = ".mp3"
+    tmp_path = None
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=temp_suffix) as tmp:
+            tmp.write(buf.read())
+            tmp_path = tmp.name
+        y, sr = _load_with_ffmpeg_file(tmp_path, 16000)
+        return _normalize_audio(y), int(sr)
+    except Exception:
+        pass
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
     buf.seek(0)
     if librosa is not None:
         try:
@@ -140,6 +214,13 @@ def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str 
 
     if tmp_path:
          try:
+             # Preferred in cloud runtimes: decode with ffmpeg binary (system or imageio-ffmpeg).
+             try:
+                 y, sr = _load_with_ffmpeg_file(tmp_path, 48000)
+                 return _normalize_audio(y), int(sr)
+             except Exception:
+                 pass
+
              try:
                  if AudioSegment is not None:
                      seg = AudioSegment.from_file(tmp_path)

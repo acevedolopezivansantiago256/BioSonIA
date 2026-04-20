@@ -198,11 +198,11 @@ async def analyze(
         filename = str(getattr(file, "filename", "") or "").lower()
         content_type = str(getattr(file, "content_type", "") or "").lower()
         is_mp3 = filename.endswith(".mp3") or "audio/mpeg" in content_type or "mp3" in content_type
-        if is_mp3 and not (FFMPEG_PATH and FFPROBE_PATH):
+        if is_mp3 and not FFMPEG_PATH:
             return JSONResponse(
                 {
                     "detected": False,
-                    "message": "El servidor no tiene ffmpeg/ffprobe para procesar MP3. Instala ambos binarios en el despliegue.",
+                    "message": "El servidor no tiene ffmpeg para procesar MP3. Instala ffmpeg o usa imageio-ffmpeg en el despliegue.",
                 },
                 status_code=400,
             )
