@@ -22,16 +22,20 @@ function envOrThrow(name: string): string {
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: envOrThrow('DB_HOST'),
-      port: Number(envOrThrow('DB_PORT')),
-      username: envOrThrow('DB_USER'),
-      password: envOrThrow('DB_PASSWORD'),
-      database: envOrThrow('DB_NAME'),
-      entities: [User, File, AIResult, Analysis],
-      synchronize: false,
-    }),
+    (() => {
+      const sslEnabled = String(process.env.DB_SSL || '').toLowerCase() === 'true';
+      return TypeOrmModule.forRoot({
+        type: 'postgres',
+        host: envOrThrow('DB_HOST'),
+        port: Number(envOrThrow('DB_PORT')),
+        username: envOrThrow('DB_USER'),
+        password: envOrThrow('DB_PASSWORD'),
+        database: envOrThrow('DB_NAME'),
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+        entities: [User, File, AIResult, Analysis],
+        synchronize: false,
+      });
+    })(),
     AuthModule,
     UploadModule,
     AnalysisModule,
