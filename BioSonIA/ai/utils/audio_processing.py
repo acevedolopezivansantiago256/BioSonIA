@@ -33,17 +33,21 @@ def _find_ffmpeg_binary():
     return None
 
 
-def _load_with_ffmpeg_file(file_path: str, target_sr: int):
+def _load_with_ffmpeg_file(file_path: str, target_sr: int, max_seconds: float | None = None):
     ffmpeg_bin = _find_ffmpeg_binary()
     if not ffmpeg_bin:
         raise RuntimeError("ffmpeg not available")
-    proc = subprocess.run(
+    cmd = [
+        ffmpeg_bin,
+        "-v",
+        "error",
+        "-i",
+        file_path,
+    ]
+    if max_seconds is not None and float(max_seconds) > 0:
+        cmd.extend(["-t", str(float(max_seconds))])
+    cmd.extend(
         [
-            ffmpeg_bin,
-            "-v",
-            "error",
-            "-i",
-            file_path,
             "-f",
             "f32le",
             "-acodec",
@@ -53,7 +57,10 @@ def _load_with_ffmpeg_file(file_path: str, target_sr: int):
             "-ar",
             str(int(target_sr)),
             "pipe:1",
-        ],
+        ]
+    )
+    proc = subprocess.run(
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=True,
@@ -109,6 +116,10 @@ def _load_with_pydub(buf: io.BytesIO, mime: str | None, filename: str | None):
         return y, sr
     return y, sr
 
+
+_MAX_DECODE_SECONDS = float(os.environ.get("MAX_DECODE_SECONDS", os.environ.get("MAX_AUDIO_SECONDS", "45")))
+_ENABLE_PYDUB_FALLBACK = os.environ.get("ENABLE_PYDUB_FALLBACK", "false").strip().lower() == "true"
+
 def load_audio_mono_16k(buf: io.BytesIO, mime: str | None = None, filename: str | None = None):
     """
     Carga WAV/MP3 desde memoria y lo convierte a mono 16 kHz.
@@ -127,7 +138,7 @@ def load_audio_mono_16k(buf: io.BytesIO, mime: str | None = None, filename: str 
         with tempfile.NamedTemporaryFile(delete=False, suffix=temp_suffix) as tmp:
             tmp.write(buf.read())
             tmp_path = tmp.name
-        y, sr = _load_with_ffmpeg_file(tmp_path, 16000)
+        y, sr = _load_with_ffmpeg_file(tmp_path, 16000, max_seconds=_MAX_DECODE_SECONDS)
         return _normalize_audio(y), int(sr)
     except Exception:
         pass
@@ -144,15 +155,16 @@ def load_audio_mono_16k(buf: io.BytesIO, mime: str | None = None, filename: str 
             return _normalize_audio(data.astype(np.float32)), int(sr)
         except Exception:
             pass
-    try:
-        y, sr = _load_with_pydub(buf, mime, filename)
-        if librosa is not None:
-            y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=16000).astype(np.float32)
+    if _ENABLE_PYDUB_FALLBACK:
+        try:
+            y, sr = _load_with_pydub(buf, mime, filename)
+            if librosa is not None:
+                y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=16000).astype(np.float32)
+                return _normalize_audio(y), 16000
+            y = _resample_linear(y.astype(np.float32), int(sr), 16000)
             return _normalize_audio(y), 16000
-        y = _resample_linear(y.astype(np.float32), int(sr), 16000)
-        return _normalize_audio(y), 16000
-    except Exception:
-        pass
+        except Exception:
+            pass
     try:
         with wave.open(buf, 'rb') as w:
             sr = w.getframerate()
@@ -200,9 +212,13 @@ def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str 
     # Save the buffer to a temporary file to avoid hanging with librosa/pydub on BytesIO
     buf.seek(0)
     temp_suffix = ".wav"
-    if filename and filename.lower().endswith(".mp3"):
+    name_lower = (filename or "").lower()
+    mime_lower = (mime or "").lower()
+    is_mp3 = name_lower.endswith(".mp3") or "mp3" in mime_lower or "audio/mpeg" in mime_lower
+    is_wav = name_lower.endswith(".wav") or "wav" in mime_lower or "audio/wav" in mime_lower or "audio/wave" in mime_lower
+    if is_mp3:
         temp_suffix = ".mp3"
-    elif mime and "mp3" in mime.lower():
+    elif "mp3" in mime_lower:
         temp_suffix = ".mp3"
         
     try:
@@ -216,41 +232,67 @@ def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str 
          try:
              # Preferred in cloud runtimes: decode with ffmpeg binary (system or imageio-ffmpeg).
              try:
-                 y, sr = _load_with_ffmpeg_file(tmp_path, 48000)
+                 y, sr = _load_with_ffmpeg_file(tmp_path, 48000, max_seconds=_MAX_DECODE_SECONDS)
                  return _normalize_audio(y), int(sr)
              except Exception:
                  pass
 
-             try:
-                 if AudioSegment is not None:
-                     seg = AudioSegment.from_file(tmp_path)
-                     seg = seg.set_channels(1)
-                     sr = int(seg.frame_rate)
-                     samples = np.array(seg.get_array_of_samples())
-                     if seg.sample_width == 1:
-                         y = (samples.astype(np.float32) / 128.0).astype(np.float32)
-                     elif seg.sample_width == 2:
-                         y = (samples.astype(np.float32) / 32768.0).astype(np.float32)
-                     elif seg.sample_width == 4:
-                         y = (samples.astype(np.float32) / 2147483648.0).astype(np.float32)
-                     else:
-                         y = samples.astype(np.float32)
-                     
-                     if librosa is not None:
-                         y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=48000).astype(np.float32)
-                         os.remove(tmp_path)
-                         return _normalize_audio(y), 48000
-                     y = _resample_linear(y.astype(np.float32), int(sr), 48000)
-                     os.remove(tmp_path)
-                     return _normalize_audio(y), 48000
-             except Exception:
-                 pass
+             if is_mp3:
+                 # MP3 without ffmpeg is unreliable in minimal runtimes.
+                 return np.array([], dtype=np.float32), 48000
 
-             if librosa is not None:
+             if is_wav:
                  try:
-                     y, sr = librosa.load(tmp_path, sr=48000, mono=True)
-                     os.remove(tmp_path)
-                     return _normalize_audio(y.astype(np.float32)), int(sr)
+                     with wave.open(tmp_path, 'rb') as w:
+                         sr = w.getframerate()
+                         n_channels = w.getnchannels()
+                         sampwidth = w.getsampwidth()
+                         num_frames = w.getnframes()
+                         raw = w.readframes(num_frames)
+
+                     if sampwidth == 1:
+                         data = np.frombuffer(raw, dtype=np.uint8)
+                         data = (data.astype(np.float32) - 128.0) / 128.0
+                     elif sampwidth == 2:
+                         data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+                     elif sampwidth == 4:
+                         data = np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
+                     else:
+                         data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+
+                     if n_channels > 1:
+                         data = data.reshape(-1, n_channels).mean(axis=1)
+                     if sr != 48000 and sr > 0 and data.size > 0:
+                         data = _resample_linear(data.astype(np.float32), int(sr), 48000)
+                         sr = 48000
+                     max_samples = int(max(1.0, _MAX_DECODE_SECONDS) * 48000)
+                     if data.size > max_samples:
+                         data = data[:max_samples]
+                     return _normalize_audio(data), int(sr)
+                 except Exception:
+                     pass
+
+             if _ENABLE_PYDUB_FALLBACK:
+                 try:
+                     if AudioSegment is not None:
+                         seg = AudioSegment.from_file(tmp_path)
+                         seg = seg.set_channels(1)
+                         sr = int(seg.frame_rate)
+                         samples = np.array(seg.get_array_of_samples())
+                         if seg.sample_width == 1:
+                             y = (samples.astype(np.float32) / 128.0).astype(np.float32)
+                         elif seg.sample_width == 2:
+                             y = (samples.astype(np.float32) / 32768.0).astype(np.float32)
+                         elif seg.sample_width == 4:
+                             y = (samples.astype(np.float32) / 2147483648.0).astype(np.float32)
+                         else:
+                             y = samples.astype(np.float32)
+
+                         if librosa is not None:
+                             y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=48000).astype(np.float32)
+                             return _normalize_audio(y), 48000
+                         y = _resample_linear(y.astype(np.float32), int(sr), 48000)
+                         return _normalize_audio(y), 48000
                  except Exception:
                      pass
          finally:

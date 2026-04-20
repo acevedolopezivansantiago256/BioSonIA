@@ -39,8 +39,8 @@ app = FastAPI(title="BioSonIA AI Service (BirdNET)")
 DEFAULT_LAT = float(os.environ.get("DEFAULT_LAT", "7.8891"))  # Cúcuta, Norte de Santander (Colombia)
 DEFAULT_LON = float(os.environ.get("DEFAULT_LON", "-72.4967"))
 MAX_UPLOAD_MB = float(os.environ.get("MAX_UPLOAD_MB", "20"))
-MAX_AUDIO_SECONDS = float(os.environ.get("MAX_AUDIO_SECONDS", "90"))
-ENABLE_SPECTROGRAMS = os.environ.get("ENABLE_SPECTROGRAMS", "true").strip().lower() == "true"
+MAX_AUDIO_SECONDS = float(os.environ.get("MAX_AUDIO_SECONDS", "60"))
+ENABLE_SPECTROGRAMS = os.environ.get("ENABLE_SPECTROGRAMS", "false").strip().lower() == "true"
 ENABLE_REFERENCE_SPECTROGRAM = os.environ.get("ENABLE_REFERENCE_SPECTROGRAM", "false").strip().lower() == "true"
 FFMPEG_PATH = os.environ.get("FFMPEG_BINARY") or shutil.which("ffmpeg")
 FFPROBE_PATH = os.environ.get("FFPROBE_BINARY") or shutil.which("ffprobe")
