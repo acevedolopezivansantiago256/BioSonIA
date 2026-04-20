@@ -10,13 +10,21 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const corsOrigins = (process.env.CORS_ORIGINS || '')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/^=+/, '').replace(/^['"]|['"]$/g, '').replace(/\/+$/, ''))
     .filter(Boolean);
   app.enableCors({
-    origin: corsOrigins.length ? corsOrigins : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (requestOrigin, callback) => {
+      // Allow non-browser clients (no Origin header) and same-origin requests.
+      if (!requestOrigin) return callback(null, true);
+      const normalized = String(requestOrigin).trim().replace(/\/+$/, '');
+      const defaults = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+      const allowed = corsOrigins.length ? corsOrigins : defaults;
+      if (allowed.includes(normalized)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${requestOrigin}`), false);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   });
   app.use(json({ limit: '25mb' }));
   app.use(urlencoded({ extended: true }));
