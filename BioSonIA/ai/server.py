@@ -40,7 +40,8 @@ DEFAULT_LAT = float(os.environ.get("DEFAULT_LAT", "7.8891"))  # Cúcuta, Norte d
 DEFAULT_LON = float(os.environ.get("DEFAULT_LON", "-72.4967"))
 MAX_UPLOAD_MB = float(os.environ.get("MAX_UPLOAD_MB", "20"))
 MAX_AUDIO_SECONDS = float(os.environ.get("MAX_AUDIO_SECONDS", "60"))
-ENABLE_SPECTROGRAMS = os.environ.get("ENABLE_SPECTROGRAMS", "false").strip().lower() == "true"
+ENABLE_SPECTROGRAMS = os.environ.get("ENABLE_SPECTROGRAMS", "true").strip().lower() == "true"
+SPECTROGRAM_MAX_SECONDS = float(os.environ.get("SPECTROGRAM_MAX_SECONDS", "20"))
 ENABLE_REFERENCE_SPECTROGRAM = os.environ.get("ENABLE_REFERENCE_SPECTROGRAM", "false").strip().lower() == "true"
 FFMPEG_PATH = os.environ.get("FFMPEG_BINARY") or shutil.which("ffmpeg")
 FFPROBE_PATH = os.environ.get("FFPROBE_BINARY") or shutil.which("ffprobe")
@@ -169,6 +170,7 @@ def health():
         "ffprobe_available": bool(FFPROBE_PATH),
         "max_upload_mb": MAX_UPLOAD_MB,
         "max_audio_seconds": MAX_AUDIO_SECONDS,
+        "spectrogram_max_seconds": SPECTROGRAM_MAX_SECONDS,
     }
 
 @app.post('/analyze')
@@ -243,12 +245,15 @@ async def analyze(
         b64_bn = None
         b64_wave = None
         if ENABLE_SPECTROGRAMS:
-            S = mel_spectrogram(y, int(sr))
+            # Keep visual generation bounded to avoid OOM/timeouts on long files.
+            max_spec_samples = max(1, int(max(1.0, SPECTROGRAM_MAX_SECONDS) * int(sr)))
+            y_for_viz = y[:max_spec_samples] if y.size > max_spec_samples else y
+            S = mel_spectrogram(y_for_viz, int(sr))
             png_std = spectrogram_png_bytes(S, cmap="magma", title="Spectrogram")
             b64_std = base64.b64encode(png_std).decode("ascii")
             png_bn = spectrogram_png_bytes(S, cmap="viridis", title="BirdNET-style Spectrogram")
             b64_bn = base64.b64encode(png_bn).decode("ascii")
-            png_wave = waveform_clean_noisy_png_bytes(y, int(sr))
+            png_wave = waveform_clean_noisy_png_bytes(y_for_viz, int(sr))
             b64_wave = base64.b64encode(png_wave).decode("ascii")
 
         tmp_path = None
@@ -330,6 +335,8 @@ async def analyze(
                 "date": date_used,
                 "sr": int(sr),
                 "duration": duration_sec,
+                "spectrogram_generated": bool(ENABLE_SPECTROGRAMS),
+                "spectrogram_window_seconds": float(min(duration_sec, max(1.0, SPECTROGRAM_MAX_SECONDS))),
                 "region_hint": "Colombia (Norte de Santander)",
             }
 
