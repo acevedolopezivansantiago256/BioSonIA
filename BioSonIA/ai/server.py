@@ -102,6 +102,10 @@ try:
         _ff = os.environ.get("FFMPEG_BINARY")
     if not _ffprobe and os.environ.get("FFPROBE_BINARY"):
         _ffprobe = os.environ.get("FFPROBE_BINARY")
+    if _ff and not FFMPEG_PATH:
+        FFMPEG_PATH = _ff
+    if _ffprobe and not FFPROBE_PATH:
+        FFPROBE_PATH = _ffprobe
     if _ff:
         _AS.converter = _ff
 except Exception:
