@@ -112,7 +112,7 @@ def load_audio_mono_16k(buf: io.BytesIO, mime: str | None = None, filename: str 
     except Exception:
         return np.array([], dtype=np.float32), 16000
 
-def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str | None = None):
+def load_audio_mono_48k(buf: io.BytesIO | str, mime: str | None = None, filename: str | None = None):
     """
     Preprocesamiento recomendado para BirdNET:
     - Mono
@@ -123,29 +123,40 @@ def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str 
     import tempfile
     import os
     
-    # Save the buffer to a temporary file to avoid hanging with librosa/pydub on BytesIO
-    buf.seek(0)
-    temp_suffix = ".wav"
-    if filename and filename.lower().endswith(".mp3"):
-        temp_suffix = ".mp3"
-    elif mime and "mp3" in mime.lower():
-        temp_suffix = ".mp3"
-        
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=temp_suffix) as tmp:
-            tmp.write(buf.read())
-            tmp_path = tmp.name
-    except Exception:
-        tmp_path = None
+    tmp_path = None
+    is_temp = False
+
+    # Si es una ruta de archivo, la usamos directamente
+    if isinstance(buf, str):
+        tmp_path = buf
+        is_temp = False
+    else:
+        # Save the buffer to a temporary file
+        buf.seek(0)
+        temp_suffix = ".wav"
+        if filename and filename.lower().endswith(".mp3"):
+            temp_suffix = ".mp3"
+        elif mime and "mp3" in mime.lower():
+            temp_suffix = ".mp3"
+            
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=temp_suffix) as tmp:
+                tmp.write(buf.read())
+                tmp_path = tmp.name
+                is_temp = True
+        except Exception:
+            return np.array([], dtype=np.float32), 48000
 
     if tmp_path:
          try:
+             # Intentar con pydub primero
              try:
                  if AudioSegment is not None:
                      seg = AudioSegment.from_file(tmp_path)
                      seg = seg.set_channels(1)
                      sr = int(seg.frame_rate)
                      samples = np.array(seg.get_array_of_samples())
+                     
                      if seg.sample_width == 1:
                          y = (samples.astype(np.float32) / 128.0).astype(np.float32)
                      elif seg.sample_width == 2:
@@ -156,59 +167,64 @@ def load_audio_mono_48k(buf: io.BytesIO, mime: str | None = None, filename: str 
                          y = samples.astype(np.float32)
                      
                      if librosa is not None:
-                         y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=48000).astype(np.float32)
-                         os.remove(tmp_path)
+                         # Usar kaiser_fast para menor consumo de memoria y CPU
+                         y = librosa.resample(y.astype(np.float32), orig_sr=int(sr), target_sr=48000, res_type="kaiser_fast").astype(np.float32)
                          return _normalize_audio(y), 48000
                      y = _resample_linear(y.astype(np.float32), int(sr), 48000)
-                     os.remove(tmp_path)
                      return _normalize_audio(y), 48000
              except Exception:
                  pass
 
+             # Fallback a librosa directo
              if librosa is not None:
                  try:
                      y, sr = librosa.load(tmp_path, sr=48000, mono=True)
-                     os.remove(tmp_path)
                      return _normalize_audio(y.astype(np.float32)), int(sr)
                  except Exception:
                      pass
          finally:
-            if os.path.exists(tmp_path):
+            if is_temp and tmp_path and os.path.exists(tmp_path):
                 try:
                     os.remove(tmp_path)
                 except Exception:
                     pass
 
-    # Fallback to wave module (only works for WAV)
-    buf.seek(0)
-    try:
-        with wave.open(buf, 'rb') as w:
-            sr = w.getframerate()
-            n_channels = w.getnchannels()
-            sampwidth = w.getsampwidth()
-            num_frames = w.getnframes()
-            raw = w.readframes(num_frames)
+    # Fallback final (solo para buffers WAV)
+    if not isinstance(buf, str):
+        buf.seek(0)
+        try:
+            with wave.open(buf, 'rb') as w:
+                sr = w.getframerate()
+                n_channels = w.getnchannels()
+                sampwidth = w.getsampwidth()
+                num_frames = w.getnframes()
+                raw = w.readframes(num_frames)
 
-        if sampwidth == 1:
-            data = np.frombuffer(raw, dtype=np.uint8)
-            data = (data.astype(np.float32) - 128.0) / 128.0
-        elif sampwidth == 2:
-            data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
-        elif sampwidth == 4:
-            data = np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
-        else:
-            data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+            if sampwidth == 1:
+                data = np.frombuffer(raw, dtype=np.uint8)
+                data = (data.astype(np.float32) - 128.0) / 128.0
+            elif sampwidth == 2:
+                data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+            elif sampwidth == 4:
+                data = np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
+            else:
+                data = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
 
-        if n_channels > 1:
-            data = data.reshape(-1, n_channels).mean(axis=1)
+            if n_channels > 1:
+                data = data.reshape(-1, n_channels).mean(axis=1)
 
-        if sr != 48000 and sr > 0 and data.size > 0:
-            data = _resample_linear(data.astype(np.float32), int(sr), 48000)
-            sr = 48000
+            if sr != 48000 and sr > 0 and data.size > 0:
+                if librosa is not None:
+                    data = librosa.resample(data.astype(np.float32), orig_sr=int(sr), target_sr=48000).astype(np.float32)
+                else:
+                    data = _resample_linear(data.astype(np.float32), int(sr), 48000)
+                sr = 48000
 
-        return _normalize_audio(data), int(sr)
-    except Exception:
-        return np.array([], dtype=np.float32), 48000
+            return _normalize_audio(data), sr
+        except Exception:
+            pass
+
+    return np.array([], dtype=np.float32), 48000
 
 def mel_spectrogram(y: np.ndarray, sr: int):
     if y is None or y.size == 0:

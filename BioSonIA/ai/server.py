@@ -61,8 +61,11 @@ try:
         _ff = os.environ.get("FFMPEG_BINARY")
     if _ff:
         _AS.converter = _ff
-except Exception:
-    pass
+        logger.info(f"FFmpeg encontrado en: {_ff}")
+    else:
+        logger.warning("FFmpeg NO fue encontrado. El procesamiento de MP3 podría fallar.")
+except Exception as e:
+    logger.error(f"Error buscando FFmpeg: {e}")
 
 bn_analyzer: Optional[Analyzer] = None
 if BN_AVAILABLE:
@@ -117,6 +120,8 @@ def read_root():
 def health():
     return {"ok": True, "model": "BirdNET", "birdnet_available": bool(bn_analyzer is not None)}
 
+import gc
+
 @app.post('/analyze')
 async def analyze(
     file: UploadFile = File(...),
@@ -143,6 +148,10 @@ async def analyze(
             mime=getattr(file, "content_type", None),
             filename=getattr(file, "filename", None),
         )
+        # Liberar raw bytes inmediatamente
+        del raw
+        gc.collect()
+
         if y is None or getattr(y, "size", 0) == 0:
             logger.warning("No se pudo leer el audio/Audio vacío")
             return JSONResponse(
@@ -271,11 +280,14 @@ async def analyze(
                 }
             )
         finally:
-            if tmp_path and os.path.exists(tmp_path):
-                try:
-                    os.remove(tmp_path)
-                except Exception:
-                    pass
+                if tmp_path and os.path.exists(tmp_path):
+                    try:
+                        os.remove(tmp_path)
+                    except Exception:
+                        pass
+                # Liberar memoria después del procesamiento pesado
+                del y
+                gc.collect()
     except Exception as e:
         import traceback
         traceback.print_exc()
