@@ -11,4 +11,5 @@
 - `npx prisma migrate dev && npx prisma generate`
 
 ## AI Service
-- URL configurable: `AI_SERVICE_URL` (por defecto `http://localhost:5001`).
+- URL configurable: `PYTHON_API_URL` (recomendada) o `AI_SERVICE_URL` (compatibilidad).
+- Si ninguna está definida, usa por defecto `http://localhost:5001`.

@@ -69,13 +69,15 @@ DROP TABLE IF EXISTS "users" CASCADE;
 `;
 
 const sql = action === 'revert' ? revertSql : createSql;
+const sslEnabled = String(process.env.DB_SSL || '').toLowerCase() === 'true';
 
 const client = new Client({
   host: envOrThrow('DB_HOST'),
   port: Number(envOrThrow('DB_PORT')),
   user: envOrThrow('DB_USER'),
   password: envOrThrow('DB_PASSWORD'),
-  database: envOrThrow('DB_NAME')
+  database: envOrThrow('DB_NAME'),
+  ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
 });
 
 client.connect()

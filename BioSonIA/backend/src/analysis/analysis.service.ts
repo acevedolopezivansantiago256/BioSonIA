@@ -28,7 +28,7 @@ export class AnalysisService {
     });
     try {
       const timeoutMs = Number(process.env.AI_TIMEOUT_MS || '180000');
-      const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
+      const AI_URL = (process.env.PYTHON_API_URL || process.env.AI_SERVICE_URL || 'http://localhost:5001').replace(/\/+$/, '');
       const res = await (async () => {
         const FormData = require('form-data');
         const fs = require('fs');
@@ -102,7 +102,7 @@ export class AnalysisService {
       
       try {
         const timeoutMs = Number(process.env.AI_TIMEOUT_MS || '180000');
-        const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
+        const AI_URL = (process.env.PYTHON_API_URL || process.env.AI_SERVICE_URL || 'http://localhost:5001').replace(/\/+$/, '');
         const res = await (async () => {
           const FormData = require('form-data');
           const fs = require('fs');

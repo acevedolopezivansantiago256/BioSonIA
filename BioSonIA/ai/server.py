@@ -2,6 +2,7 @@ import os
 import io
 import base64
 import tempfile
+import shutil
 from datetime import datetime
 from typing import Optional, Any
 
@@ -37,16 +38,46 @@ app = FastAPI(title="BioSonIA AI Service (BirdNET)")
 
 DEFAULT_LAT = float(os.environ.get("DEFAULT_LAT", "7.8891"))  # Cúcuta, Norte de Santander (Colombia)
 DEFAULT_LON = float(os.environ.get("DEFAULT_LON", "-72.4967"))
+MAX_UPLOAD_MB = float(os.environ.get("MAX_UPLOAD_MB", "20"))
+MAX_AUDIO_SECONDS = float(os.environ.get("MAX_AUDIO_SECONDS", "60"))
+ENABLE_SPECTROGRAMS = os.environ.get("ENABLE_SPECTROGRAMS", "true").strip().lower() == "true"
+SPECTROGRAM_MAX_SECONDS = float(os.environ.get("SPECTROGRAM_MAX_SECONDS", "20"))
+ENABLE_REFERENCE_SPECTROGRAM = os.environ.get("ENABLE_REFERENCE_SPECTROGRAM", "false").strip().lower() == "true"
+FFMPEG_PATH = os.environ.get("FFMPEG_BINARY") or shutil.which("ffmpeg")
+FFPROBE_PATH = os.environ.get("FFPROBE_BINARY") or shutil.which("ffprobe")
 
 try:
     from ai.utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes
 except Exception:
-    from utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes  # type: ignore
+    try:
+        from utils.audio_processing import load_audio_mono_48k, mel_spectrogram, spectrogram_png_bytes, waveform_clean_noisy_png_bytes  # type: ignore
+    except Exception:
+        def _missing_audio_utils(*args, **kwargs):
+            raise RuntimeError(
+                "No se encontró audio_processing.py (esperado en ai/utils o utils). "
+                "Incluye ese archivo en el despliegue."
+            )
+
+        load_audio_mono_48k = _missing_audio_utils
+        mel_spectrogram = _missing_audio_utils
+        spectrogram_png_bytes = _missing_audio_utils
+        waveform_clean_noisy_png_bytes = _missing_audio_utils
 
 try:
     from pydub.utils import which as _which
     from pydub import AudioSegment as _AS
     _ff = _which("ffmpeg")
+    _ffprobe = _which("ffprobe")
+    if not _ff:
+        try:
+            import imageio_ffmpeg
+            _ff = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            _ff = None
+    if not _ffprobe and _ff:
+        ffprobe_from_ffmpeg = _ff.replace("ffmpeg.exe", "ffprobe.exe").replace("/ffmpeg", "/ffprobe")
+        if os.path.exists(ffprobe_from_ffmpeg):
+            _ffprobe = ffprobe_from_ffmpeg
     if not _ff:
         for _p in [
             r"C:\ffmpeg\bin\ffmpeg.exe",
@@ -57,15 +88,24 @@ try:
             if os.path.exists(_p):
                 _ff = _p
                 break
+    if not _ffprobe:
+        for _p in [
+            r"C:\ffmpeg\bin\ffprobe.exe",
+            r"C:\Program Files\FFmpeg\bin\ffprobe.exe",
+            r"C:\Program Files\Gyan\FFmpeg\bin\ffprobe.exe",
+            r"C:\Program Files (x86)\FFmpeg\bin\ffprobe.exe",
+        ]:
+            if os.path.exists(_p):
+                _ffprobe = _p
+                break
     if not _ff and os.environ.get("FFMPEG_BINARY"):
         _ff = os.environ.get("FFMPEG_BINARY")
+    if not _ffprobe and os.environ.get("FFPROBE_BINARY"):
+        _ffprobe = os.environ.get("FFPROBE_BINARY")
     if _ff:
         _AS.converter = _ff
-        logger.info(f"FFmpeg encontrado en: {_ff}")
-    else:
-        logger.warning("FFmpeg NO fue encontrado. El procesamiento de MP3 podría fallar.")
-except Exception as e:
-    logger.error(f"Error buscando FFmpeg: {e}")
+except Exception:
+    pass
 
 bn_analyzer: Optional[Analyzer] = None
 if BN_AVAILABLE:
@@ -118,7 +158,16 @@ def read_root():
 
 @app.get('/health')
 def health():
-    return {"ok": True, "model": "BirdNET", "birdnet_available": bool(bn_analyzer is not None)}
+    return {
+        "ok": True,
+        "model": "BirdNET",
+        "birdnet_available": bool(bn_analyzer is not None),
+        "ffmpeg_available": bool(FFMPEG_PATH),
+        "ffprobe_available": bool(FFPROBE_PATH),
+        "max_upload_mb": MAX_UPLOAD_MB,
+        "max_audio_seconds": MAX_AUDIO_SECONDS,
+        "spectrogram_max_seconds": SPECTROGRAM_MAX_SECONDS,
+    }
 
 import gc
 
@@ -136,6 +185,28 @@ async def analyze(
             return JSONResponse({"detected": False, "message": "BirdNET no está disponible en el servidor."}, status_code=503)
 
         raw = await file.read()
+        max_upload_bytes = int(MAX_UPLOAD_MB * 1024 * 1024)
+        if len(raw) > max_upload_bytes:
+            return JSONResponse(
+                {
+                    "detected": False,
+                    "message": f"Archivo demasiado grande. Máximo permitido: {MAX_UPLOAD_MB} MB.",
+                },
+                status_code=413,
+            )
+
+        filename = str(getattr(file, "filename", "") or "").lower()
+        content_type = str(getattr(file, "content_type", "") or "").lower()
+        is_mp3 = filename.endswith(".mp3") or "audio/mpeg" in content_type or "mp3" in content_type
+        if is_mp3 and not FFMPEG_PATH:
+            return JSONResponse(
+                {
+                    "detected": False,
+                    "message": "El servidor no tiene ffmpeg para procesar MP3. Instala ffmpeg o usa imageio-ffmpeg en el despliegue.",
+                },
+                status_code=400,
+            )
+
         threshold = float(confidence_threshold) if confidence_threshold is not None else float(min_confidence)
         lat_used, lon_used, date_used = _defaults_for_colombia(lat, lon, date)
         
@@ -162,13 +233,30 @@ async def analyze(
                 status_code=400,
             )
 
-        S = mel_spectrogram(y, int(sr))
-        png_std = spectrogram_png_bytes(S, cmap="magma", title="Spectrogram")
-        b64_std = base64.b64encode(png_std).decode("ascii")
-        png_bn = spectrogram_png_bytes(S, cmap="viridis", title="BirdNET-style Spectrogram")
-        b64_bn = base64.b64encode(png_bn).decode("ascii")
-        png_wave = waveform_clean_noisy_png_bytes(y, int(sr))
-        b64_wave = base64.b64encode(png_wave).decode("ascii")
+        duration_sec = float(len(y) / float(sr))
+        if duration_sec > MAX_AUDIO_SECONDS:
+            return JSONResponse(
+                {
+                    "detected": False,
+                    "message": f"Audio demasiado largo ({duration_sec:.1f}s). Máximo permitido: {MAX_AUDIO_SECONDS}s.",
+                },
+                status_code=413,
+            )
+
+        b64_std = None
+        b64_bn = None
+        b64_wave = None
+        if ENABLE_SPECTROGRAMS:
+            # Keep visual generation bounded to avoid OOM/timeouts on long files.
+            max_spec_samples = max(1, int(max(1.0, SPECTROGRAM_MAX_SECONDS) * int(sr)))
+            y_for_viz = y[:max_spec_samples] if y.size > max_spec_samples else y
+            S = mel_spectrogram(y_for_viz, int(sr))
+            png_std = spectrogram_png_bytes(S, cmap="magma", title="Spectrogram")
+            b64_std = base64.b64encode(png_std).decode("ascii")
+            png_bn = spectrogram_png_bytes(S, cmap="viridis", title="BirdNET-style Spectrogram")
+            b64_bn = base64.b64encode(png_bn).decode("ascii")
+            png_wave = waveform_clean_noisy_png_bytes(y_for_viz, int(sr))
+            b64_wave = base64.b64encode(png_wave).decode("ascii")
 
         tmp_path = None
         try:
@@ -219,7 +307,7 @@ async def analyze(
 
             # Buscar espectrograma de referencia si se detectó especie
             b64_ref = None
-            if detected:
+            if detected and ENABLE_REFERENCE_SPECTROGRAM:
                 species_name = top3[0]["species"]
                 # Posibles rutas relativas desde donde se ejecute el script
                 candidates = [
@@ -248,7 +336,9 @@ async def analyze(
                 "lon": lon_used,
                 "date": date_used,
                 "sr": int(sr),
-                "duration": float(len(y) / float(sr)),
+                "duration": duration_sec,
+                "spectrogram_generated": bool(ENABLE_SPECTROGRAMS),
+                "spectrogram_window_seconds": float(min(duration_sec, max(1.0, SPECTROGRAM_MAX_SECONDS))),
                 "region_hint": "Colombia (Norte de Santander)",
             }
 

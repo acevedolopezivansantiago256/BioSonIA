@@ -1,8 +1,14 @@
 FROM python:3.10-slim
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
-COPY ../ai/requirements.txt ./
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
+COPY ai/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ../ai ./
+COPY ai ./
+ENV PYTHONUNBUFFERED=1
+ENV MPLBACKEND=Agg
+ENV MAX_UPLOAD_MB=20
+ENV MAX_AUDIO_SECONDS=90
+ENV ENABLE_SPECTROGRAMS=true
+ENV ENABLE_REFERENCE_SPECTROGRAM=false
 EXPOSE 5001
 CMD ["python", "server.py"]
