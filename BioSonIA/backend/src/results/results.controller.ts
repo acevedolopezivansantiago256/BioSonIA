@@ -34,7 +34,13 @@ export class ResultsController {
   async getResult(@Param('id') id: string) {
     if (process.env.DISABLE_DB === 'true') {
       const rec = memoryStore.analyses.get(id);
-      if (!rec || !rec.result) return {};
+      if (!rec) return {};
+      if (!rec.result) {
+        return {
+          status: rec.status,
+          message: rec.error || (rec.status === 'failed' ? 'El analisis fallo.' : 'Analizando audio...'),
+        };
+      }
       return rec.result;
     }
     
@@ -43,7 +49,13 @@ export class ResultsController {
       relations: ['aiResult']
     });
     
-    if (!analysis || !analysis.aiResult) return {};
+    if (!analysis) return {};
+    if (!analysis.aiResult) {
+      return {
+        status: analysis.status,
+        message: analysis.status === 'failed' ? 'El analisis fallo.' : 'Analizando audio...',
+      };
+    }
     const r = analysis.aiResult;
     const top3 = normalizeTop3(JSON.parse(r.top3Json || '[]'));
     const metadata = JSON.parse(r.metadataJson || '{}');

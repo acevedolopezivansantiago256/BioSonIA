@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 type ResultPayload = {
+  status?: string;
   detected?: boolean;
   message?: string;
   top3?: Array<{ species: string; confidence: number }>;
@@ -52,16 +53,35 @@ export default function ResultsPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`${API_BASE}/results/${id}`, { cache: 'no-store' })
-      .then(res => res.json())
-      .then(d => {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const pendingStatuses = new Set(['queued', 'processing', 'running']);
+
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/results/${id}`, { cache: 'no-store' });
+        const d = await res.json();
+        if (cancelled) return;
         setData(d);
         if (d?.metadata?.min_confidence) {
-            setMinConf(d.metadata.min_confidence);
+          setMinConf(d.metadata.min_confidence);
+        }
+        if (pendingStatuses.has(String(d?.status || ''))) {
+          setLoading(true);
+          timeoutId = setTimeout(load, 3000);
+          return;
         }
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [id, API_BASE]);
 
   // Audio Player Simulation
@@ -102,6 +122,7 @@ export default function ResultsPage() {
          <div className="flex flex-col items-center gap-4">
             <span className="material-symbols-rounded animate-spin text-5xl text-primary">graphic_eq</span>
             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest animate-pulse">Analyzing Audio...</p>
+            <p className="text-xs text-slate-400">El archivo se subio correctamente y el analisis sigue en progreso.</p>
          </div>
       </div>
     );
@@ -109,6 +130,10 @@ export default function ResultsPage() {
 
   if (!data) {
     return <div className="p-8 text-center text-slate-500">Error loading analysis results.</div>;
+  }
+
+  if (data.status === 'failed') {
+    return <div className="p-8 text-center text-red-500">{data.message || 'El analisis fallo.'}</div>;
   }
 
   const detected = data.detected === true;
