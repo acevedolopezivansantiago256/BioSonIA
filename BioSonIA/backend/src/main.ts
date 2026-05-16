@@ -29,7 +29,11 @@ async function bootstrap() {
   app.use(json({ limit: '25mb' }));
   app.use(urlencoded({ extended: true }));
   const port = Number(process.env.PORT) || 5000;
-  const host = process.env.HOST || '0.0.0.0';
+  const requestedHost = String(process.env.HOST || '').trim();
+  const host =
+    !requestedHost || requestedHost === 'localhost' || requestedHost === '127.0.0.1'
+      ? '0.0.0.0'
+      : requestedHost;
   await app.listen(port, host);
   // Simple startup log for dev tracing
   // eslint-disable-next-line no-console
