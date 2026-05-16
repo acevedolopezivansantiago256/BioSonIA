@@ -32,8 +32,8 @@ export class ResultsController {
 
   @Get('results/:id')
   async getResult(@Param('id') id: string) {
-    if (process.env.DISABLE_DB === 'true') {
-      const rec = memoryStore.analyses.get(id);
+    const rec = memoryStore.analyses.get(id);
+    if (process.env.DISABLE_DB === 'true' || rec) {
       if (!rec) return {};
       if (!rec.result) {
         return {
@@ -43,7 +43,9 @@ export class ResultsController {
       }
       return rec.result;
     }
-    
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) return {};
+
     const analysis = await this.analysisRepository.findOne({
       where: { id },
       relations: ['aiResult']
